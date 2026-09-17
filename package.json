@@ -6,18 +6,35 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "next build && npx wrangler pages deploy out --project-name e-world --branch main --commit-dirty=true",
+    "postinstall": "node -e \"const fs=require('fs'); const p='node_modules/three/examples/jsm/postprocessing/Pass.js'; if(fs.existsSync('app/shims/Pass.js') && !fs.existsSync(p)) { fs.mkdirSync('node_modules/three/examples/jsm/postprocessing', {recursive:true}); fs.copyFileSync('app/shims/Pass.js', p); }\""
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "@react-three/postprocessing": "^3.1.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.2.0",
+    "gsap": "^3.15.0",
+    "lucide-react": "^1.46.0",
     "next": "16.3.5",
+    "postprocessing": "^6.39.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-skinview3d": "^7.0.0",
+    "skinview3d": "^3.4.2",
+    "tailwind-merge": "^3.7.0",
+    "three": "^0.186.0",
+    "three-stdlib": "^2.36.1",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.186.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
