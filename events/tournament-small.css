@@ -1,0 +1,6 @@
+@media (max-width: 360px) {
+  .tournament-hero h1 { font-size: 42px; letter-spacing: -.08em; }
+  .hero-format { font-size: 9px; letter-spacing: .12em; }
+  .tournament-primary, .tournament-secondary { padding-inline: 12px; }
+  .registration-form fieldset { padding-inline: 10px; }
+}

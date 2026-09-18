@@ -1,0 +1,23 @@
+.giveaway-rewards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.giveaway-rewards[hidden] { display: none; }
+
+.giveaway-rewards span {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: #aab1a7;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.giveaway-rewards span:first-child { color: var(--lime); }
+
+@media (max-width: 520px) {
+  .giveaway-rewards { grid-template-columns: 1fr; }
+}

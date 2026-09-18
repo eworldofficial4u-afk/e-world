@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "e-world-community",
+  "pages_build_output_dir": "public",
+  "compatibility_date": "2026-08-29",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "eworld-community-data",
+      "database_id": "b65976a9-63db-4c4f-aff2-41805cda7a3f"
+    }
+  ]
+}

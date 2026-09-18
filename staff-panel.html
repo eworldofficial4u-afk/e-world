@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <meta name="theme-color" content="#070a07" />
+  <title>E-WORLD Staff Panel</title>
+  <link rel="stylesheet" href="staff-panel.css?v=20260901-2" />
+</head>
+<body>
+  <div class="page-grid" aria-hidden="true"></div>
+  <section class="session-check" id="session-check" aria-live="polite"><img src="assets/eworld-logo.webp" alt="" /><span>ESTABLISHING SECURE SESSION</span></section>
+
+  <main class="login-view" id="login-view" hidden>
+    <a class="login-brand" href="/" aria-label="Return to E-WORLD website"><img src="assets/eworld-logo.webp" alt="" /><span>E-WORLD</span></a>
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="login-signal"><i></i> RESTRICTED STAFF NETWORK</div>
+      <p class="kicker">EW / ACCESS 01</p>
+      <h1 id="login-title">COMMAND<br /><em>CENTER.</em></h1>
+      <p class="login-copy">Sign in with the administrator password. Sessions are protected server-side and automatically expire after two hours.</p>
+      <form id="login-form" class="login-form">
+        <label for="staff-password">Administrator password</label>
+        <div class="password-field"><input id="staff-password" name="password" type="password" autocomplete="current-password" required autofocus placeholder="Enter password" /><button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false">SHOW</button></div>
+        <button class="primary-action" type="submit"><span>Unlock panel</span><b>→</b></button>
+        <p class="inline-message" id="login-message" role="status" aria-live="polite"></p>
+      </form>
+      <div class="security-line"><span>◈ FIRST-PARTY SESSION</span><span>◈ CSRF PROTECTED</span><span>◈ AUDITED</span></div>
+    </section>
+  </main>
+
+  <div class="dashboard" id="dashboard" hidden>
+    <aside class="sidebar">
+      <a class="side-brand" href="/"><img src="assets/eworld-logo.webp" alt="" /><span>E-WORLD</span></a>
+      <p class="side-label">STAFF OPERATIONS</p>
+      <nav aria-label="Staff panel views">
+        <button class="nav-button active" type="button" data-view="all" aria-pressed="true"><span>01</span><b>Overview</b><i>◫</i></button>
+        <button class="nav-button" type="button" data-view="giveaway" aria-pressed="false"><span>02</span><b>Giveaways</b><i>◇</i></button>
+        <button class="nav-button" type="button" data-view="community" aria-pressed="false"><span>03</span><b>Community</b><i>⌁</i></button>
+        <button class="nav-button" type="button" data-view="event" aria-pressed="false"><span>04</span><b>Events</b><i>◉</i></button>
+        <button class="nav-button" type="button" data-view="registrations" aria-pressed="false"><span>05</span><b>Registrations</b><i>▤</i></button>
+      </nav>
+      <div class="side-foot"><div class="database-status"><i></i><span><small>DATABASE STATUS</small><b>D1 CONNECTED</b></span></div><a href="/">← View public website</a></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="workspace-header">
+        <div><p>E-WORLD / STAFF PANEL</p><h1>OPERATIONS</h1></div>
+        <div class="account"><img id="staff-avatar" src="assets/eworld-logo.webp" alt="" /><span><small>AUTHORIZED SESSION</small><b id="staff-name">Administrator</b></span><button type="button" id="logout-button">Log out</button></div>
+      </header>
+      <section class="status-ribbon" aria-label="System status"><span><i></i> SYSTEM OPERATIONAL</span><span id="session-expiry">SESSION ACTIVE</span><a href="/" target="_blank" rel="noopener">PUBLIC SITE ↗</a></section>
+      <section class="metrics" id="operation-metrics" aria-label="Operation summary">
+        <article><span>ACTIVE NOW</span><strong id="metric-active">0</strong><small>Visible operations</small></article>
+        <article><span>PARTICIPANTS</span><strong id="metric-participants">0</strong><small>Active giveaways & events</small></article>
+        <article><span>UPCOMING</span><strong id="metric-upcoming">0</strong><small>Scheduled operations</small></article>
+        <article class="clock-card"><span>NETWORK TIME</span><strong id="network-clock">00:00</strong><small>Asia / Kolkata</small></article>
+      </section>
+      <section class="registrations-section" id="registrations-section" hidden aria-labelledby="registrations-title">
+        <div class="registration-metrics"><article><span>TOTAL REGISTRATIONS</span><strong id="reg-total">0</strong></article><article><span>PENDING</span><strong id="reg-pending">0</strong></article><article><span>UNDER REVIEW</span><strong id="reg-review">0</strong></article><article><span>APPROVED</span><strong id="reg-approved">0</strong></article><article><span>REJECTED</span><strong id="reg-rejected">0</strong></article><article><span>TOTAL PLAYERS</span><strong id="reg-players">0</strong></article></div>
+        <div class="registration-heading"><div><p>TOURNAMENT / ENTRIES</p><h2 id="registrations-title">Team registrations</h2><span id="registration-count">0 records</span></div><a class="export-button" id="registration-export" href="/api/admin/tournament/registrations/export">EXPORT CSV ↓</a></div>
+        <div class="registration-availability"><span>PUBLIC REGISTRATION</span><select id="registration-availability-event" aria-label="Tournament event"></select><select id="registration-availability-status" aria-label="Registration availability"><option value="not_open">Not Open</option><option value="open">Open</option><option value="closed">Closed</option></select><button type="button" id="save-registration-availability">UPDATE AVAILABILITY</button></div>
+        <form class="registration-filters" id="registration-filters"><label><span>Search</span><input name="search" placeholder="Team, captain, or registration ID" /></label><label><span>Status</span><select name="status"><option value="all">All</option><option value="pending">Pending</option><option value="under_review">Under Review</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="waitlisted">Waitlisted</option></select></label><label><span>Event</span><select name="event"><option value="all">All events</option></select></label><button type="submit">APPLY FILTERS</button></form>
+        <div class="registration-table" id="registration-table" aria-live="polite"></div>
+        <div class="registration-pagination"><button type="button" id="registration-prev">← PREVIOUS</button><span id="registration-page">PAGE 1</span><button type="button" id="registration-next">NEXT →</button></div>
+      </section>
+      <section class="operations-section" id="operations-section" aria-labelledby="operations-title">
+        <div class="section-toolbar"><div><p id="view-code">VIEW / ALL</p><h2 id="operations-title">All operations</h2><span id="record-count">0 records</span></div><button class="new-button" type="button" id="new-operation"><span>New operation</span><b>+</b></button></div>
+        <div class="notice" id="dashboard-notice" role="status" aria-live="polite" hidden></div>
+        <div class="operation-grid" id="operation-grid" aria-live="polite"></div>
+        <div class="empty-panel" id="empty-panel" hidden><span>◇</span><h3>Nothing here yet</h3><p>Create a giveaway, community update, or event. Drafts stay private until you activate them.</p><button type="button" id="empty-create">Create first operation</button></div>
+      </section>
+      <section class="audit-section" id="audit-section" aria-labelledby="audit-title">
+        <div class="audit-heading"><div><p>SECURITY / LOG</p><h2 id="audit-title">Audit trail</h2></div><span>Last 30 protected actions</span></div>
+        <div class="audit-list" id="audit-list"></div><p class="audit-empty" id="audit-empty" hidden>No protected changes recorded yet.</p>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="editor-dialog" id="editor-dialog" aria-labelledby="editor-title">
+    <form id="operation-form">
+      <header class="dialog-header"><div><p>OPERATION EDITOR</p><h2 id="editor-title">New operation</h2></div><button type="button" id="close-editor" aria-label="Close editor">×</button></header>
+      <input type="hidden" name="id" />
+      <div class="form-grid">
+        <label><span>Operation type</span><select name="type" required><option value="giveaway">Giveaway</option><option value="community">Community</option><option value="event">Event</option></select></label>
+        <label><span>Status</span><select name="status" required><option value="draft">Draft — private</option><option value="active">Active — live</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+        <label class="full"><span>Title</span><input name="title" minlength="2" maxlength="100" required placeholder="Clear public title" /></label>
+        <label class="full"><span>Description</span><textarea name="description" maxlength="1000" rows="4" placeholder="Public details, requirements, or schedule"></textarea></label>
+        <label><span>Starts at</span><input name="startsAt" type="datetime-local" /></label>
+        <label><span>Ends at</span><input name="endsAt" type="datetime-local" /></label>
+        <label data-participant-field><span>Active participants</span><input name="participantCount" type="number" min="0" max="10000000" value="0" /></label>
+        <label class="visibility-toggle"><span><b>Show on public website</b><small>Only active and unexpired records are displayed.</small></span><input name="notificationEnabled" type="checkbox" checked /><i aria-hidden="true"></i></label>
+        <fieldset class="type-panel full" data-type-panel="giveaway">
+          <legend>GIVEAWAY DETAILS</legend>
+          <label><span>Grand prize</span><input name="grandPrize" maxlength="80" placeholder="Founder-tier bundle" /></label>
+          <label><span>Bonus prizes</span><input name="bonusPrizes" maxlength="100" placeholder="3× server reward packs" /></label>
+          <label><span>Community rewards</span><input name="communityRewards" maxlength="100" placeholder="Custom roles for everyone" /></label>
+          <label><span>Participant goal</span><input name="participantGoal" type="number" min="0" max="10000000" value="0" /></label>
+        </fieldset>
+        <fieldset class="type-panel full" data-type-panel="community" hidden>
+          <legend>COMMUNITY PULSE</legend>
+          <label><span>Channels</span><input name="channels" type="number" min="0" max="100000" value="0" /></label>
+          <label><span>Roles</span><input name="roles" type="number" min="0" max="100000" value="0" /></label>
+          <label><span>Boosts</span><input name="boosts" type="number" min="0" max="100000" value="0" /></label>
+          <label><span>Status label</span><input name="onlineLabel" maxlength="24" placeholder="LIVE" /></label>
+        </fieldset>
+        <aside class="form-hint full" id="type-hint">Active giveaways require an end time so the website and Discord countdown stay accurate.</aside>
+      </div>
+      <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
+      <footer class="dialog-actions"><button type="button" class="secondary" id="cancel-editor">Cancel</button><button type="submit" class="primary" id="save-operation">Save operation <span>→</span></button></footer>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="delete-dialog" aria-labelledby="delete-title">
+    <div><span>DELETE RECORD</span><h2 id="delete-title">Delete this operation?</h2><p id="delete-copy"></p><small>This cannot be undone. The action will remain in the audit trail.</small></div>
+    <footer><button type="button" id="cancel-delete">Keep operation</button><button type="button" id="confirm-delete">Delete permanently</button></footer>
+  </dialog>
+  <dialog class="registration-dialog" id="registration-dialog" aria-labelledby="registration-review-title">
+    <header class="dialog-header"><div><p>TOURNAMENT REVIEW</p><h2 id="registration-review-title">Team registration</h2></div><button type="button" id="close-registration" aria-label="Close registration review">×</button></header>
+    <div class="registration-detail" id="registration-detail"></div>
+    <label class="staff-notes"><span>STAFF NOTES</span><textarea id="registration-notes" rows="4" maxlength="2000" placeholder="Internal review notes"></textarea></label>
+    <footer class="registration-actions"><button type="button" data-registration-status="approved">APPROVE</button><button type="button" data-registration-status="waitlisted">WAITLIST</button><button type="button" data-registration-status="rejected" class="danger">REJECT</button><button type="button" id="save-registration-notes">SAVE NOTES</button></footer>
+  </dialog>
+  <dialog class="confirm-dialog" id="registration-confirm-dialog" aria-labelledby="registration-confirm-title"><div><span>CONFIRM STATUS CHANGE</span><h2 id="registration-confirm-title">Update registration?</h2><p id="registration-confirm-copy"></p><small>This protected action will be written to the audit trail.</small></div><footer><button type="button" id="cancel-registration-status">Cancel</button><button type="button" id="confirm-registration-status">Confirm update</button></footer></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="staff-panel.js?v=20260901-2"></script>
+</body>
+</html>

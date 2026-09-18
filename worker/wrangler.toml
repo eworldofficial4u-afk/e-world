@@ -1,0 +1,9 @@
+name = "eworld-community-api"
+main = "src/index.js"
+compatibility_date = "2026-08-26"
+
+[vars]
+ALLOWED_ORIGIN = "https://your-production-domain.example"
+
+# Configure the rotated webhook privately before deployment:
+# npx wrangler secret put DISCORD_WEBHOOK_URL

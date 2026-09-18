@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "include": [
+    "/api/*",
+    "/staff-panel",
+    "/admin.html"
+  ],
+  "exclude": []
+}
