@@ -70,7 +70,7 @@ export const galaxyNodes: GalaxyNode[] = [
     angle: 3.1,
     desc: "Cinematic roleplay city featuring custom economy, emergency services, business ownership, and deep character lore.",
     stats: "Active Citizens 124 / 128 • Whitelist Open",
-    actionLabel: "ENTER THE GRID",
+    actionLabel: "ENTER E-WORLD",
     link: "/grid",
   },
   {

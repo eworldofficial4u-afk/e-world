@@ -1,11 +1,73 @@
 "use client";
 
-import React, { useState } from "react";
-import { creators, Creator } from "../data/creators";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import {
+  creators as initialCreators,
+  Creator,
+  ROLE_STAR_CREATORS_ID,
+  ROLE_CONTENT_CREATOR_ID,
+} from "../data/creators";
 
 export default function CreatorGuildSection() {
+  const [creatorsList, setCreatorsList] = useState<Creator[]>(initialCreators);
   const [activeCategory, setActiveCategory] = useState<"all" | "Star Creator" | "Content Creator">("all");
   const [copiedHandle, setCopiedHandle] = useState<string | null>(null);
+  const [isLiveSynced, setIsLiveSynced] = useState<boolean>(false);
+
+  // Auto-fetch creators dynamically using Discord Role IDs
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchRoleCreators = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://e-world-bot-production.up.railway.app";
+        const res = await fetch(`${apiUrl}/api/creators`, { cache: "no-store" });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const incoming: Creator[] = Array.isArray(data) ? data : data.creators;
+
+        if (incoming && incoming.length > 0 && isMounted) {
+          setCreatorsList((prev) => {
+            // Merge incoming role-synced creators while preserving custom social links
+            const incomingMap = new Map(incoming.map((c) => [c.username.toLowerCase(), c]));
+            const updated = prev.map((existing) => {
+              const live = incomingMap.get(existing.username.toLowerCase());
+              if (live) {
+                return {
+                  ...existing,
+                  ...live,
+                  links: {
+                    ...existing.links,
+                    ...(live.links || {}),
+                  },
+                };
+              }
+              return existing;
+            });
+
+            // Append any new members detected with the roles that weren't in static list
+            const existingKeys = new Set(prev.map((c) => c.username.toLowerCase()));
+            const newMembers = incoming.filter((c) => !existingKeys.has(c.username.toLowerCase()));
+
+            return [...updated, ...newMembers];
+          });
+          setIsLiveSynced(true);
+        }
+      } catch (err) {
+        // Fallback safely to initial curated roster
+        console.warn("[Creators Auto-Fetch] Using curated data:", err);
+      }
+    };
+
+    fetchRoleCreators();
+    const interval = setInterval(fetchRoleCreators, 30000); // 30s auto-refresh polling
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleCopyTag = (tag: string) => {
     navigator.clipboard?.writeText(tag);
@@ -15,8 +77,8 @@ export default function CreatorGuildSection() {
     }, 2000);
   };
 
-  const starCreators = creators.filter((c) => c.category === "Star Creator");
-  const contentCreators = creators.filter((c) => c.category === "Content Creator");
+  const starCreators = creatorsList.filter((c) => c.category === "Star Creator");
+  const contentCreators = creatorsList.filter((c) => c.category === "Content Creator");
 
   return (
     <section id="creators" className="relative w-full py-16 px-4 sm:px-6 font-mono z-20">
@@ -40,8 +102,24 @@ export default function CreatorGuildSection() {
             Partnered filmmakers, machinima directors, and variety streamers broadcasting the stories, SMP megabuilds, and competitive showdowns of E-World across global platforms.
           </p>
 
+          {/* Discord Role Auto-Fetch Telemetry Chip */}
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3.5 py-1.5 bg-black/60 border border-amber-400/30 rounded-full text-[10px] text-amber-300 font-mono tracking-wider mt-6 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+            <span className={`w-2 h-2 rounded-full ${isLiveSynced ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+            <span className="font-bold uppercase">
+              {isLiveSynced ? "DISCORD ROLE AUTO-SYNC: LIVE" : "DISCORD ROLE SYNC PROTOCOL"}
+            </span>
+            <span className="text-white/30">|</span>
+            <span className="text-amber-400/90 font-mono">
+              ★ STAR: <span className="text-white font-bold">{ROLE_STAR_CREATORS_ID}</span>
+            </span>
+            <span className="text-white/30">•</span>
+            <span className="text-cyan-400/90 font-mono">
+              ⚡ CREATOR: <span className="text-white font-bold">{ROLE_CONTENT_CREATOR_ID}</span>
+            </span>
+          </div>
+
           {/* Interactive Category Filter Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8 p-1.5 bg-black/60 border border-white/10 rounded-xl backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-6 p-1.5 bg-black/60 border border-white/10 rounded-xl backdrop-blur-md">
             <button
               onClick={() => setActiveCategory("all")}
               className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider transition-all duration-200 cursor-pointer ${
@@ -50,7 +128,7 @@ export default function CreatorGuildSection() {
                   : "text-white/60 hover:text-white hover:bg-white/5"
               }`}
             >
-              ALL CREATORS ({creators.length})
+              ALL CREATORS ({creatorsList.length})
             </button>
             <button
               onClick={() => setActiveCategory("Star Creator")}
@@ -99,7 +177,7 @@ export default function CreatorGuildSection() {
                     STAR CREATORS
                   </h3>
                   <span className="text-white/40 text-[11px] tracking-widest block font-sans">
-                    Premier media icons & cinematic storytellers
+                    Premier media icons & cinematic storytellers • Role ID: {ROLE_STAR_CREATORS_ID}
                   </span>
                 </div>
               </div>
@@ -139,7 +217,7 @@ export default function CreatorGuildSection() {
                     CONTENT CREATORS
                   </h3>
                   <span className="text-white/40 text-[11px] tracking-widest block font-sans">
-                    Competitive casters, roleplay leads & community variety streamers
+                    Competitive casters, roleplay leads & community variety streamers • Role ID: {ROLE_CONTENT_CREATOR_ID}
                   </span>
                 </div>
               </div>
@@ -177,7 +255,7 @@ export default function CreatorGuildSection() {
                 CREATE WITH E-WORLD
               </h3>
               <p className="text-white/60 text-xs sm:text-sm tracking-wider max-w-xl mt-2 font-sans">
-                Are you a streamer, YouTuber, or competitive caster? Join the official E-World Creator Guild on Discord to unlock whitelists, priority queues, and channel spotlights.
+                Are you a streamer, YouTuber, or competitive caster? Receive the Star Creator ({ROLE_STAR_CREATORS_ID}) or Content Creator ({ROLE_CONTENT_CREATOR_ID}) role on Discord to automatically appear in the official E-World Creator network.
               </p>
             </div>
             <a
@@ -242,15 +320,33 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Holographic Avatar Box */}
             <div className="relative shrink-0">
-              <div
-                className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-extrabold text-base sm:text-lg text-black shadow-lg border border-white/20 transition-transform duration-300 group-hover:scale-105"
-                style={{
-                  background: creator.avatarGradient,
-                  boxShadow: `0 0 25px ${creator.avatarGlow}`,
-                }}
-              >
-                {creator.initials}
-              </div>
+              {creator.avatarUrl ? (
+                <div
+                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl overflow-hidden border border-white/20 shadow-lg transition-transform duration-300 group-hover:scale-105 relative bg-zinc-900"
+                  style={{
+                    boxShadow: `0 0 25px ${creator.avatarGlow}`,
+                  }}
+                >
+                  <Image
+                    src={creator.avatarUrl}
+                    alt={creator.name}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div
+                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-extrabold text-base sm:text-lg text-black shadow-lg border border-white/20 transition-transform duration-300 group-hover:scale-105"
+                  style={{
+                    background: creator.avatarGradient,
+                    boxShadow: `0 0 25px ${creator.avatarGlow}`,
+                  }}
+                >
+                  {creator.initials}
+                </div>
+              )}
               {/* Live/Verified Indicator Dot */}
               <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-black flex items-center justify-center">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />

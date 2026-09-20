@@ -19,8 +19,8 @@ import styles from "./community.module.css";
 
 const worlds = [
   { name: "E-World", tag: "DISCORD / COMMUNITY", image: "/images/community/discord-world-new.jpg", color: "#e9b972", word: "Belong", line: "beyond the screen.", description: "Different worlds. Familiar voices. A place for late-night conversations, unlikely friendships, and whatever we create next.", href: "https://discord.gg/ewld", cta: "Find your people" },
-  { name: "The Block", tag: "MINECRAFT / SURVIVAL", image: "/images/community/smp-world-old.jpg", color: "#91d5aa", word: "Build", line: "something together.", description: "Start with a block. Leave behind a world. Find your crew and make your mark in a shared survival universe.", href: "/smp", cta: "Explore the SMP" },
-  { name: "The Grid", tag: "FIVEM / ROLEPLAY", image: "/images/community/fivem-world-old.jpg", color: "#82bdec", word: "Become", line: "your next story.", description: "Every street is a beginning. Meet the people, make the choices, and become part of a city written by its players.", href: "/grid", cta: "Enter the city" },
+  { name: "E-World", tag: "MINECRAFT / SURVIVAL", image: "/images/community/smp-world-old.jpg", color: "#91d5aa", word: "Build", line: "something together.", description: "Start with a block. Leave behind a world. Find your crew and make your mark in a shared survival universe.", href: "/smp", cta: "Explore the SMP" },
+  { name: "E-World", tag: "FIVEM / ROLEPLAY", image: "/images/community/fivem-world-old.jpg", color: "#82bdec", word: "Become", line: "your next story.", description: "Every street is a beginning. Meet the people, make the choices, and become part of a city written by its players.", href: "/grid", cta: "Enter the city" },
 ];
 
 const chapters = ["Explore", "Comms", "Leaderboard", "Events", "Creators", "Council", "Directory"] as const;

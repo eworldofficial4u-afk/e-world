@@ -9,6 +9,9 @@ export interface CreatorSocials {
   kick?: string;
 }
 
+export const ROLE_STAR_CREATORS_ID = "1550017295789588523";
+export const ROLE_CONTENT_CREATOR_ID = "1550016791428730960";
+
 export interface Creator {
   id: string;
   name: string;
@@ -18,6 +21,7 @@ export interface Creator {
   badge: string;
   avatarGradient: string;
   avatarGlow: string;
+  avatarUrl?: string;
   initials: string;
   role: string;
   subscribers: string;
@@ -25,6 +29,7 @@ export interface Creator {
   specialties: string[];
   featuredQuote: string;
   verified: boolean;
+  discordRoleId?: string;
   links: CreatorSocials;
 }
 
@@ -94,12 +99,12 @@ export const creators: Creator[] = [
     avatarGradient: "linear-gradient(135deg, #06b6d4 0%, #0284c7 50%, #2563eb 100%)",
     avatarGlow: "rgba(6, 182, 212, 0.45)",
     initials: "-D",
-    role: "FPS Specialist • Grid Roleplay & Tactics",
+    role: "FPS Specialist • E-World Roleplay & Tactics",
     subscribers: "78K+",
     platform: "Twitch & YouTube",
-    specialties: ["Tactical Infiltration", "Grid Street RP", "Competitive Aim"],
+    specialties: ["Tactical Infiltration", "E-World Street RP", "Competitive Aim"],
     featuredQuote:
-      "“Precision aim, ultra-low latency, and high-octane pursuits. The Grid arena in E-World never sleeps.”",
+      "“Precision aim, ultra-low latency, and high-octane pursuits. The arena in E-World never sleeps.”",
     verified: true,
     links: {
       youtube: "https://youtube.com/@ggs11",
@@ -147,7 +152,7 @@ export const creators: Creator[] = [
     platform: "YouTube & Kick",
     specialties: ["Underground Factions", "Custom Vehicle Tuning", "High-Stakes Heists"],
     featuredQuote:
-      "“Respect isn't given on the streets of E-World Grid; it's forged in chrome, horsepower, and unbreakable loyalty.”",
+      "“Respect isn't given on the streets of E-World; it's forged in chrome, horsepower, and unbreakable loyalty.”",
     verified: true,
     links: {
       youtube: "https://youtube.com/@biggbsteel",
