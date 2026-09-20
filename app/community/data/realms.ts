@@ -17,11 +17,11 @@ export const universeScenes: UniverseScene[] = [
   {
     index: "01",
     id: "nexus",
-    category: "NEXUS PROTOCOL",
+    category: "E-WORLD PROTOCOL",
     title: "A WORLD BEYOND PLAY.",
     subtitle: "An independent universe for the next generation of players.",
     tagline: "PLAY • CONNECT • CREATE • COMPETE",
-    coordinates: "0x00 // NEXUS_ORIGIN",
+    coordinates: "0x00 // E-WORLD_ORIGIN",
     stats: { status: "IN DEVELOPMENT", access: "Announcements on Discord" },
     description:
       "The gravitational anchor of E-World. A unified digital civilization combining custom survival multiplayer, FiveM roleplay cinema, and sanctioned esports tournaments.",

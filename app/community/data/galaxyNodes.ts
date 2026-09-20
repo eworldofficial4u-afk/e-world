@@ -18,7 +18,7 @@ export const galaxyNodes: GalaxyNode[] = [
   {
     id: "core",
     name: "E-WORLD CORE",
-    category: "Ecosystem Nexus",
+    category: "E-World Central Core",
     radius: 36,
     color: "#f59e0b",
     glowColor: "rgba(245, 158, 11, 0.6)",
