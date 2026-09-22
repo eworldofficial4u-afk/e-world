@@ -30,28 +30,18 @@ export default function CreatorGuildSection() {
 
         if (incoming && incoming.length > 0 && isMounted) {
           setCreatorsList((prev) => {
-            // Merge incoming role-synced creators while preserving custom social links
-            const incomingMap = new Map(incoming.map((c) => [c.username.toLowerCase(), c]));
-            const updated = prev.map((existing) => {
-              const live = incomingMap.get(existing.username.toLowerCase());
-              if (live) {
-                return {
-                  ...existing,
-                  ...live,
-                  links: {
-                    ...existing.links,
-                    ...(live.links || {}),
-                  },
-                };
-              }
-              return existing;
+            // Authoritative live sync from Discord roles & presence
+            const existingMap = new Map(prev.map((c) => [c.username.toLowerCase(), c]));
+            return incoming.map((live) => {
+              const existing = existingMap.get(live.username.toLowerCase());
+              return {
+                ...(existing || {}),
+                ...live,
+                // Only retain genuinely connected links - zero random or fake placeholders
+                links: { ...(live.links || {}) },
+                bioLink: live.bioLink || existing?.bioLink,
+              };
             });
-
-            // Append any new members detected with the roles that weren't in static list
-            const existingKeys = new Set(prev.map((c) => c.username.toLowerCase()));
-            const newMembers = incoming.filter((c) => !existingKeys.has(c.username.toLowerCase()));
-
-            return [...updated, ...newMembers];
           });
           setIsLiveSynced(true);
         }
@@ -401,7 +391,7 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
         </p>
 
         {/* Specialties Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-5">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {creator.specialties.map((spec, i) => (
             <span
               key={i}
@@ -411,6 +401,26 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
             </span>
           ))}
         </div>
+
+        {/* Bio Link Connection Badge */}
+        {creator.bioLink && (
+          <div className="mb-4">
+            <a
+              href={creator.bioLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/50 hover:bg-black/80 border border-white/15 hover:border-amber-400/50 text-white/90 hover:text-white text-[11px] font-mono tracking-wider transition-all duration-200 group/bio shadow-sm"
+              title={`Direct Profile / Bio Link: ${creator.bioLink}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-amber-400 font-bold uppercase text-[10px]">CONNECTED BIO:</span>
+              <span className="text-white/70 group-hover/bio:text-white truncate max-w-[170px] sm:max-w-[220px]">
+                {creator.bioLink.replace(/^https?:\/\/(www\.)?/, "")}
+              </span>
+              <span className="text-amber-400 text-xs">↗</span>
+            </a>
+          </div>
+        )}
 
         {/* In-Universe Lore Quote */}
         <blockquote
@@ -438,8 +448,22 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
           </span>
         </div>
 
-        {/* Social Media Link Buttons */}
+        {/* Social Media Link Buttons - Strictly Connected Links Only */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Connected Bio Link Button */}
+          {creator.bioLink && (
+            <SocialButton
+              href={creator.bioLink}
+              label={`Creator Bio (${creator.bioLink})`}
+              colorClass="hover:bg-amber-500/20 hover:border-amber-500/60 hover:text-amber-300 hover:shadow-[0_0_15px_rgba(245,158,11,0.4)]"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </SocialButton>
+          )}
+
           {/* YouTube */}
           {creator.links.youtube && (
             <SocialButton
@@ -488,6 +512,19 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
             >
               <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </SocialButton>
+          )}
+
+          {/* Discord Custom Link */}
+          {creator.links.discord && (
+            <SocialButton
+              href={creator.links.discord}
+              label="Discord"
+              colorClass="hover:bg-indigo-500/20 hover:border-indigo-500/60 hover:text-indigo-400 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+            >
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
               </svg>
             </SocialButton>
           )}

@@ -9,11 +9,13 @@ import CosmicHudOverlay from "./components/CosmicHudOverlay";
 import CustomCursor from "./components/CustomCursor";
 import AnoAI from "@/components/ui/animated-shader-background";
 import { useLiveStats } from "../hooks/useLiveStats";
+import { useDevicePerformance } from "../hooks/useDevicePerformance";
 
 export default function EWorldHome() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [activeWorld, setActiveWorld] = useState<string | null>(null);
+  const { isMobile, dpr } = useDevicePerformance();
 
   // Live WebSocket Stats from orchestrator
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
@@ -55,7 +57,7 @@ export default function EWorldHome() {
       </div>
 
       {/* Addon: Dynamic Cosmic Aurora Shader Background */}
-      {mounted && (
+      {mounted && !isMobile && (
         <div className="absolute inset-0 pointer-events-none z-[2] opacity-30 mix-blend-screen overflow-hidden">
           <AnoAI />
         </div>
@@ -71,10 +73,10 @@ export default function EWorldHome() {
       <div className="absolute inset-0 z-10">
         {mounted && (
           <Canvas
-            dpr={[1, 2]}
+            dpr={dpr}
             camera={{ position: [0, 0.5, 14.5], fov: 46 }}
             gl={{
-              antialias: true,
+              antialias: !isMobile,
               alpha: true,
               powerPreference: "high-performance",
             }}

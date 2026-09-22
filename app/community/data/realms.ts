@@ -16,7 +16,7 @@ export interface UniverseScene {
 export const universeScenes: UniverseScene[] = [
   {
     index: "01",
-    id: "nexus",
+    id: "eworld",
     category: "E-WORLD PROTOCOL",
     title: "A WORLD BEYOND PLAY.",
     subtitle: "An independent universe for the next generation of players.",

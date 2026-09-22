@@ -8,8 +8,8 @@ import EventsTournamentHub from "./components/EventsTournamentHub";
 import CreatorGuildSection from "./components/CreatorGuildSection";
 import CouncilTeamSection from "./components/CouncilTeamSection";
 import IndexMatrixTable from "./components/IndexMatrixTable";
-import NexusCommsWidget from "./components/NexusCommsWidget";
-import CitizenLeaderboardSection from "./components/CitizenLeaderboardSection";
+import EWorldCommsWidget from "./components/NexusCommsWidget";
+import GuildAnalyticsDashboard from "./components/GuildAnalyticsDashboard";
 import CitizenIdModal from "./components/CitizenIdModal";
 import BotCommandsDrawer from "./components/BotCommandsDrawer";
 import { useLiveStats, Citizen } from "../../hooks/useLiveStats";
@@ -18,12 +18,12 @@ import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button
 import styles from "./community.module.css";
 
 const worlds = [
-  { name: "E-World", tag: "DISCORD / COMMUNITY", image: "/images/community/discord-world-new.jpg", color: "#e9b972", word: "Belong", line: "beyond the screen.", description: "Different worlds. Familiar voices. A place for late-night conversations, unlikely friendships, and whatever we create next.", href: "https://discord.gg/ewld", cta: "Find your people" },
-  { name: "E-World", tag: "MINECRAFT / SURVIVAL", image: "/images/community/smp-world-old.jpg", color: "#91d5aa", word: "Build", line: "something together.", description: "Start with a block. Leave behind a world. Find your crew and make your mark in a shared survival universe.", href: "/smp", cta: "Explore the SMP" },
-  { name: "E-World", tag: "FIVEM / ROLEPLAY", image: "/images/community/fivem-world-old.jpg", color: "#82bdec", word: "Become", line: "your next story.", description: "Every street is a beginning. Meet the people, make the choices, and become part of a city written by its players.", href: "/grid", cta: "Enter the city" },
+  { name: "E-World Community", tag: "DISCORD / COMMUNITY", image: "/images/community/discord-world-new.jpg", color: "#e9b972", word: "Belong", line: "beyond the screen.", description: "Different worlds. Familiar voices. A place for late-night conversations, unlikely friendships, and whatever we create next.", href: "https://discord.gg/ewld", cta: "Find your people" },
+  { name: "E-World SMP", tag: "MINECRAFT / SURVIVAL", image: "/images/community/smp-world-old.jpg", color: "#91d5aa", word: "Build", line: "something together.", description: "Start with your first build. Leave behind a world. Find your crew and make your mark in a shared survival universe.", href: "/smp", cta: "Explore the SMP" },
+  { name: "E-World RP", tag: "FIVEM / ROLEPLAY", image: "/images/community/fivem-world-old.jpg", color: "#82bdec", word: "Become", line: "your next story.", description: "Every street is a beginning. Meet the people, make the choices, and become part of a city written by its players.", href: "/grid", cta: "Enter the city" },
 ];
 
-const chapters = ["Explore", "Comms", "Leaderboard", "Events", "Creators", "Council", "Directory"] as const;
+const chapters = ["Explore", "Dashboard", "Comms", "Events", "Creators", "Council", "Directory"] as const;
 type Chapter = typeof chapters[number];
 
 export default function CommunityPage() {
@@ -117,11 +117,11 @@ export default function CommunityPage() {
               </button>
 
               <button
-                onClick={() => setIsBotDrawerOpen(true)}
+                onClick={() => setChapter("Dashboard")}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-white/10 bg-black/60 text-white/80 hover:text-white hover:border-white/30 transition-all font-mono text-xs font-bold cursor-pointer"
               >
                 <Activity className="w-4 h-4 text-emerald-400" />
-                <span>LIVE STATS</span>
+                <span>LIVE DASHBOARD</span>
               </button>
             </div>
           </div>
@@ -154,10 +154,10 @@ export default function CommunityPage() {
           <div className={styles.chapterHeading}>
             <p className={styles.eyebrow}>THE COLLECTIVE / {chapter.toUpperCase()}</p>
             <h1>
-              {chapter === "Comms"
-                ? "Direct from E-World."
-                : chapter === "Leaderboard"
-                ? "Top active citizens."
+              {chapter === "Dashboard"
+                ? "Live Guild Telemetry."
+                : chapter === "Comms"
+                ? "Direct Voice Frequencies."
                 : chapter === "Events"
                 ? "Make it a moment."
                 : chapter === "Creators"
@@ -169,21 +169,21 @@ export default function CommunityPage() {
             <button onClick={() => setChapter("Explore")}>← Back to the universe</button>
           </div>
 
-          {chapter === "Comms" ? (
+          {chapter === "Dashboard" ? (
+            <div className="py-4">
+              <GuildAnalyticsDashboard
+                stats={stats}
+                isConnected={isConnected}
+                discordInvite="https://discord.gg/ewld"
+              />
+            </div>
+          ) : chapter === "Comms" ? (
             <div className="max-w-5xl mx-auto w-full py-8">
-              <NexusCommsWidget
+              <EWorldCommsWidget
                 channels={stats.nexus.voiceChannels}
                 totalActiveVoice={stats.nexus.voiceActive}
               />
             </div>
-          ) : chapter === "Leaderboard" ? (
-            <CitizenLeaderboardSection
-              leaderboard={stats.nexus.leaderboard}
-              onOpenCitizenCard={(c) => {
-                setSelectedCitizen(c);
-                setIsCitizenModalOpen(true);
-              }}
-            />
           ) : chapter === "Events" ? (
             <EventsTournamentHub />
           ) : chapter === "Creators" ? (
