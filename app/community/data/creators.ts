@@ -51,6 +51,8 @@ export interface Creator {
   verified: boolean;
   discordRoleId?: string;
   bioLink?: string;
+  bio?: string;
+  memberSince?: string;
   links: CreatorSocials;
 }
 
@@ -58,6 +60,34 @@ export const creators: Creator[] = [
   // ==========================================
   // CATEGORY 1: STAR CREATORS
   // ==========================================
+  {
+    id: "989767963823456267",
+    name: "STARKOPIAN",
+    username: "starkopian",
+    tag: "@starkopian",
+    category: "Star Creator",
+    badge: "Star Creator",
+    avatarGradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)",
+    avatarGlow: "rgba(245, 158, 11, 0.45)",
+    avatarUrl: "https://cdn.discordapp.com/embed/avatars/3.png",
+    initials: "STA",
+    role: "E-World Star Creator • Media Ambassador",
+    subscribers: "Discord Role Verified",
+    platform: "Spotify • Twitch • YouTube",
+    specialties: ["Cinematics", "SMP Megabuilds", "Community Events"],
+    featuredQuote: "Lost somewhere between midnight and morning.",
+    bio: "EWLD- http://discord.gg/ewld\nLost somewhere between midnight and morning.",
+    memberSince: "Jun 24, 2022",
+    verified: true,
+    discordRoleId: ROLE_STAR_CREATORS_ID,
+    bioLink: "http://discord.gg/ewld",
+    links: {
+      spotify: "https://open.spotify.com/user/Starkopian",
+      twitch: "https://twitch.tv/starkopian",
+      youtube: "https://youtube.com/@Starkopian",
+      bio: "http://discord.gg/ewld",
+    },
+  },
   {
     id: "611825507683532802",
     name: "SAVI",
