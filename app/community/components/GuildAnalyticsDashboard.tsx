@@ -18,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { ServerStats } from "@/hooks/useLiveStats";
+import { CreatorSocials } from "../data/creators";
 
 interface GuildAnalyticsDashboardProps {
   stats: ServerStats;
@@ -39,16 +40,7 @@ interface Creator {
   specialties?: string[];
   verified: boolean;
   bioLink?: string;
-  links?: {
-    youtube?: string;
-    twitch?: string;
-    twitter?: string;
-    instagram?: string;
-    discord?: string;
-    kick?: string;
-    bio?: string;
-    website?: string;
-  };
+  links?: CreatorSocials;
 }
 
 export default function GuildAnalyticsDashboard({
@@ -379,9 +371,21 @@ export default function GuildAnalyticsDashboard({
               </p>
             </div>
           </div>
-          <span className="text-[10px] text-emerald-400 px-2 py-1 rounded bg-emerald-950/60 border border-emerald-500/20 font-bold">
-            ● 100% AUTHENTIC DISCORD ROLES
-          </span>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://e-world-bot-production.up.railway.app/api/auth/discord"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[10px] text-indigo-300 hover:text-white px-2.5 py-1 rounded bg-indigo-950/80 border border-indigo-500/40 font-bold flex items-center gap-1 transition-all"
+              title="Sync your Discord profile connections"
+            >
+              <span>SYNC CONNECTIONS</span>
+              <span>↗</span>
+            </a>
+            <span className="text-[10px] text-emerald-400 px-2 py-1 rounded bg-emerald-950/60 border border-emerald-500/20 font-bold">
+              ● AUTHENTIC ROLES
+            </span>
+          </div>
         </div>
 
         {isLoadingCreators ? (
@@ -431,7 +435,7 @@ export default function GuildAnalyticsDashboard({
                       href={c.bioLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 text-[10px] font-mono tracking-wider truncate max-w-[170px]"
+                      className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 text-[10px] font-mono tracking-wider truncate max-w-[140px]"
                       title={c.bioLink}
                     >
                       <span>🔗</span>
@@ -439,52 +443,93 @@ export default function GuildAnalyticsDashboard({
                       <span>↗</span>
                     </a>
                   ) : (
-                    <span className="text-white/30 text-[10px]">Discord Role Verified</span>
+                    <span className="text-white/30 text-[10px]">Verified</span>
                   )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 justify-end">
                     {c.links?.youtube && (
-                      <a
-                        href={c.links.youtube}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-white/60 hover:text-red-400 text-xs transition-colors"
-                        title="YouTube"
-                      >
+                      <a href={c.links.youtube} target="_blank" rel="noreferrer" className="text-white/60 hover:text-red-400 text-xs transition-colors" title="YouTube">
                         ▶
                       </a>
                     )}
-                    {c.links?.instagram && (
-                      <a
-                        href={c.links.instagram}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-white/60 hover:text-pink-400 text-xs transition-colors"
-                        title="Instagram"
-                      >
-                        📷
-                      </a>
-                    )}
                     {c.links?.twitch && (
-                      <a
-                        href={c.links.twitch}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-white/60 hover:text-purple-400 text-xs transition-colors"
-                        title="Twitch"
-                      >
+                      <a href={c.links.twitch} target="_blank" rel="noreferrer" className="text-white/60 hover:text-purple-400 text-xs transition-colors" title="Twitch">
                         👾
                       </a>
                     )}
                     {c.links?.twitter && (
-                      <a
-                        href={c.links.twitter}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-white/60 hover:text-white text-xs transition-colors"
-                        title="X / Twitter"
-                      >
+                      <a href={c.links.twitter} target="_blank" rel="noreferrer" className="text-white/60 hover:text-white text-xs transition-colors" title="X / Twitter">
                         𝕏
+                      </a>
+                    )}
+                    {c.links?.steam && (
+                      <a href={c.links.steam} target="_blank" rel="noreferrer" className="text-white/60 hover:text-sky-400 text-[11px] transition-colors" title="Steam">
+                        ♨
+                      </a>
+                    )}
+                    {c.links?.spotify && (
+                      <a href={c.links.spotify} target="_blank" rel="noreferrer" className="text-white/60 hover:text-green-400 text-xs transition-colors" title="Spotify">
+                        ♫
+                      </a>
+                    )}
+                    {c.links?.github && (
+                      <a href={c.links.github} target="_blank" rel="noreferrer" className="text-white/60 hover:text-white text-[11px] transition-colors" title="GitHub">
+                        ⌥
+                      </a>
+                    )}
+                    {c.links?.reddit && (
+                      <a href={c.links.reddit} target="_blank" rel="noreferrer" className="text-white/60 hover:text-orange-400 text-xs transition-colors" title="Reddit">
+                        🤖
+                      </a>
+                    )}
+                    {c.links?.bluesky && (
+                      <a href={c.links.bluesky} target="_blank" rel="noreferrer" className="text-white/60 hover:text-sky-300 text-xs transition-colors" title="Bluesky">
+                        🦋
+                      </a>
+                    )}
+                    {c.links?.riotgames && (
+                      <a href={c.links.riotgames} target="_blank" rel="noreferrer" className="text-white/60 hover:text-red-500 text-xs transition-colors" title="Riot Games">
+                        ✊
+                      </a>
+                    )}
+                    {c.links?.battlenet && (
+                      <a href={c.links.battlenet} target="_blank" rel="noreferrer" className="text-white/60 hover:text-blue-400 text-xs transition-colors" title="Battle.net">
+                        ❄
+                      </a>
+                    )}
+                    {c.links?.xbox && (
+                      <a href={c.links.xbox} target="_blank" rel="noreferrer" className="text-white/60 hover:text-green-500 text-xs transition-colors" title="Xbox">
+                        🎮
+                      </a>
+                    )}
+                    {c.links?.playstation && (
+                      <a href={c.links.playstation} target="_blank" rel="noreferrer" className="text-white/60 hover:text-blue-500 text-xs transition-colors" title="PlayStation">
+                        PS
+                      </a>
+                    )}
+                    {c.links?.roblox && (
+                      <a href={c.links.roblox} target="_blank" rel="noreferrer" className="text-white/60 hover:text-red-400 text-xs transition-colors" title="Roblox">
+                        ⬚
+                      </a>
+                    )}
+                    {(c.links?.domain || c.links?.website) && (
+                      <a href={c.links?.domain || c.links?.website} target="_blank" rel="noreferrer" className="text-white/60 hover:text-cyan-400 text-xs transition-colors" title="Website / Domain">
+                        🌐
+                      </a>
+                    )}
+                    {c.links?.instagram && (
+                      <a href={c.links.instagram} target="_blank" rel="noreferrer" className="text-white/60 hover:text-pink-400 text-xs transition-colors" title="Instagram">
+                        📷
+                      </a>
+                    )}
+                    {c.links?.kick && (
+                      <a href={c.links.kick} target="_blank" rel="noreferrer" className="text-white/60 hover:text-emerald-400 text-xs transition-colors" title="Kick">
+                        🟢
+                      </a>
+                    )}
+                    {c.links?.discord && (
+                      <a href={c.links.discord} target="_blank" rel="noreferrer" className="text-white/60 hover:text-indigo-400 text-xs transition-colors" title="Discord">
+                        💬
                       </a>
                     )}
                   </div>

@@ -4,11 +4,29 @@ export interface CreatorSocials {
   youtube?: string;
   twitch?: string;
   twitter?: string;
+  steam?: string;
+  spotify?: string;
+  github?: string;
+  reddit?: string;
+  riotgames?: string;
+  battlenet?: string;
+  xbox?: string;
+  playstation?: string;
+  epicgames?: string;
+  roblox?: string;
+  bluesky?: string;
+  paypal?: string;
+  ebay?: string;
+  crunchyroll?: string;
+  amazonmusic?: string;
+  bungie?: string;
+  facebook?: string;
+  domain?: string;
+  website?: string;
   instagram?: string;
   discord?: string;
   kick?: string;
   bio?: string;
-  website?: string;
 }
 
 export const ROLE_STAR_CREATORS_ID = "1550017295789588523";
