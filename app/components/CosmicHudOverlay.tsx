@@ -4,8 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 import { useAudioEngine } from "@/hooks/useAudioEngine";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
+import HudAnnouncementBanner from "./HudAnnouncementBanner";
 import PlayerPassportModal from "./PlayerPassportModal";
 import LiveTelemetryTicker from "./LiveTelemetryTicker";
+import { Shield } from "lucide-react";
 
 interface CosmicHudOverlayProps {
   activeWorld: string | null;
@@ -24,9 +27,17 @@ export default function CosmicHudOverlay({
   const [isPassportOpen, setIsPassportOpen] = useState(false);
   const [isPerformanceMode, setIsPerformanceMode] = useState(false);
   const { isPlaying: isAudioActive, toggleAmbience: toggleAudio } = useAudioEngine();
+  const { siteConfig } = useSiteConfig();
 
   return (
     <div className="fixed inset-0 pointer-events-none z-30 select-none overflow-hidden font-sans">
+      {/* Dynamic Broadcast Announcement Banner */}
+      {siteConfig.announcement?.enabled && (
+        <div className="absolute top-16 sm:top-20 left-0 right-0 z-40 px-4 pointer-events-auto">
+          <HudAnnouncementBanner announcement={siteConfig.announcement} />
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 1. TOP NAVIGATION BAR */}
       {/* ========================================================================= */}
@@ -44,10 +55,10 @@ export default function CosmicHudOverlay({
             <span className="w-2.5 h-2.5 rounded-[2px] bg-cyan-400 shadow-[0_0_12px_#38bdf8] rotate-45 group-hover:scale-110 transition-transform" />
             <div className="flex flex-col">
               <span className="text-white font-display font-black text-xs sm:text-sm tracking-[0.2em] uppercase leading-none group-hover:text-cyan-300 transition-colors drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]">
-                E-WORLD
+                {siteConfig.identity.siteName || "E-WORLD"}
               </span>
               <span className="text-white/40 font-mono text-[7px] sm:text-[8px] tracking-[0.25em] uppercase mt-0.5 sm:mt-1">
-                A UNIVERSE TOGETHER
+                {siteConfig.identity.brandTagline || "A UNIVERSE TOGETHER"}
               </span>
             </div>
           </Link>
@@ -94,6 +105,14 @@ export default function CosmicHudOverlay({
               className="hover:text-amber-400 transition-colors"
             >
               COMMUNITY
+            </Link>
+            <Link
+              href="/admin"
+              className="text-white/40 hover:text-cyan-400 transition-colors flex items-center gap-1 ml-1"
+              title="Admin Matrix Control"
+            >
+              <Shield className="w-3 h-3 text-cyan-400" />
+              <span>ADMIN</span>
             </Link>
           </div>
 
@@ -237,8 +256,17 @@ export default function CosmicHudOverlay({
 
           <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[9px] text-white/50">
             <span>LIVE STATUS: {isConnected ? "CONNECTED" : "OFFLINE"}</span>
-            <span>E-WORLD HUD V2.5</span>
+            <Link href="/admin" onClick={() => setIsMobileNavOpen(false)} className="text-cyan-400 font-bold hover:underline flex items-center gap-1">
+              <Shield className="w-2.5 h-2.5" /> ADMIN
+            </Link>
           </div>
+        </div>
+      )}
+
+      {/* Dynamic Announcement Banner from Admin Matrix */}
+      {siteConfig.announcement?.enabled && (
+        <div className="absolute top-[68px] sm:top-[76px] left-0 right-0 z-40 pointer-events-auto">
+          <HudAnnouncementBanner announcement={siteConfig.announcement} />
         </div>
       )}
 
@@ -359,7 +387,7 @@ export default function CosmicHudOverlay({
                   <div className="flex justify-between">
                     <span className="text-white/40">SERVER IP:</span>
                     <span className="text-emerald-400 font-bold">
-                      play.eworld.net
+                      {siteConfig.realms.smp.serverIp || "play.eworld.net"}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -402,7 +430,7 @@ export default function CosmicHudOverlay({
                   <div className="flex justify-between">
                     <span className="text-white/40">FIVEM DIRECT:</span>
                     <span className="text-cyan-400 font-bold">
-                      cfx.re/join/eworld
+                      {siteConfig.realms.rp.directJoinUrl || "cfx.re/join/eworld"}
                     </span>
                   </div>
                   <div className="flex justify-between">

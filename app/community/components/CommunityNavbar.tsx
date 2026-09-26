@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
+import { Shield } from "lucide-react";
 
 interface CommunityNavbarProps {
   currentMode: "explore" | "index";
@@ -18,6 +20,7 @@ export default function CommunityNavbar({
 }: CommunityNavbarProps) {
   const [time, setTime] = useState("18:45:00 UTC");
   const [isAudioActive, setIsAudioActive] = useState(false);
+  const { siteConfig } = useSiteConfig();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -102,7 +105,7 @@ export default function CommunityNavbar({
 
         {/* Discord Join Pill */}
         <a
-          href="https://discord.gg/ewld"
+          href={siteConfig.socials.discord || "https://discord.gg/ewld"}
           target="_blank"
           rel="noreferrer"
           data-interactive="true"
@@ -113,6 +116,17 @@ export default function CommunityNavbar({
             className="text-[10px] py-1.5 px-3.5 min-w-32 tracking-widest font-mono border-amber-400/50 text-amber-300"
           />
         </a>
+
+        {/* Admin Control Matrix Link */}
+        <Link
+          href="/admin"
+          data-interactive="true"
+          className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-white/5 hover:bg-cyan-500/20 border border-white/15 hover:border-cyan-400 text-white/60 hover:text-cyan-300 text-[10px] tracking-wider transition-colors"
+          title="Admin Control Matrix"
+        >
+          <Shield className="w-3 h-3 text-cyan-400" />
+          <span>ADMIN</span>
+        </Link>
 
         {/* Audio Toggle */}
         <button

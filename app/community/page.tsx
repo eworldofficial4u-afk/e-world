@@ -3,7 +3,7 @@
 import { useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShieldCheck, Activity, Radio, Trophy, Sparkles } from "lucide-react";
+import { ShieldCheck, Activity, Radio, Trophy, Sparkles, Shield } from "lucide-react";
 import EventsTournamentHub from "./components/EventsTournamentHub";
 import CreatorGuildSection from "./components/CreatorGuildSection";
 import CouncilTeamSection from "./components/CouncilTeamSection";
@@ -13,6 +13,8 @@ import GuildAnalyticsDashboard from "./components/GuildAnalyticsDashboard";
 import CitizenIdModal from "./components/CitizenIdModal";
 import BotCommandsDrawer from "./components/BotCommandsDrawer";
 import { useLiveStats, Citizen } from "../../hooks/useLiveStats";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
+import HudAnnouncementBanner from "../components/HudAnnouncementBanner";
 import ConstellationGrid from "@/components/ui/constellation-grid";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 import styles from "./community.module.css";
@@ -32,6 +34,7 @@ export default function CommunityPage() {
   const [isCitizenModalOpen, setIsCitizenModalOpen] = useState(false);
   const [isBotDrawerOpen, setIsBotDrawerOpen] = useState(false);
   const [selectedCitizen, setSelectedCitizen] = useState<Citizen | undefined>(undefined);
+  const { siteConfig } = useSiteConfig();
 
   const stage = useRef<HTMLDivElement>(null);
   const world = worlds[selected];
@@ -66,11 +69,26 @@ export default function CommunityPage() {
             <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
             <span>Citizen ID</span>
           </button>
-          <a href="https://discord.gg/ewld" target="_blank" rel="noreferrer">
+          <a href={siteConfig.socials.discord || "https://discord.gg/ewld"} target="_blank" rel="noreferrer">
             <InteractiveHoverButton text="Join Community" className="text-xs py-1.5 px-4 min-w-36" />
           </a>
+          <Link
+            href="/admin"
+            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-mono rounded-lg border border-white/10 hover:border-cyan-400 text-white/50 hover:text-cyan-300 transition-colors"
+            title="Admin Control Matrix"
+          >
+            <Shield className="w-3 h-3 text-cyan-400" />
+            <span>ADMIN</span>
+          </Link>
         </div>
       </header>
+
+      {/* Dynamic Announcement Banner */}
+      {siteConfig.announcement?.enabled && (
+        <div className="relative z-30 w-full pt-16 sm:pt-20 px-4">
+          <HudAnnouncementBanner announcement={siteConfig.announcement} />
+        </div>
+      )}
 
       {chapter === "Explore" ? (
         <div

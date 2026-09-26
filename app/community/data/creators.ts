@@ -85,7 +85,6 @@ export const creators: Creator[] = [
       spotify: "https://open.spotify.com/user/Starkopian",
       twitch: "https://twitch.tv/starkopian",
       youtube: "https://youtube.com/@Starkopian",
-      bio: "http://discord.gg/ewld",
     },
   },
   {

@@ -7,6 +7,9 @@ export default function DevToolsGuard() {
     // Only run on client in browser environment
     if (typeof window === "undefined") return;
 
+    // Allow full clipboard, devtools, and right-click access in Admin Terminal
+    if (window.location.pathname.startsWith("/admin")) return;
+
     // 1. Disable Right-Click Context Menu
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();

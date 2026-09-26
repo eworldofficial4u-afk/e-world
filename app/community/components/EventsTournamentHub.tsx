@@ -2,14 +2,18 @@
 
 import React, { useState } from "react";
 import { upcomingEvents, CommunityEvent } from "../data/events";
-import { Trophy, Swords, ShieldCheck, Flame, Users, Calendar } from "lucide-react";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
+import { Trophy, Swords, ShieldCheck, Flame, Users, Calendar, ExternalLink } from "lucide-react";
 
 export default function EventsTournamentHub() {
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [selectedEvent, setSelectedEvent] = useState<CommunityEvent | null>(null);
+  const { siteConfig } = useSiteConfig();
 
   // Featured Event (COD S&D Inaugural Tournament)
   const featured = upcomingEvents.find((e) => e.featured) || upcomingEvents[0];
+  const tournamentTitle = siteConfig.tournament?.title || featured.title;
+  const prizePool = siteConfig.tournament?.prizePool || "₹2,500 INR";
 
   const filteredEvents =
     selectedFilter === "all"
@@ -47,7 +51,7 @@ export default function EventsTournamentHub() {
               </div>
 
               <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight uppercase leading-tight">
-                {featured.title}
+                {tournamentTitle}
               </h3>
 
               <div className="flex items-center gap-2 text-xs text-amber-400/90 font-bold tracking-wider">
@@ -66,7 +70,7 @@ export default function EventsTournamentHub() {
                     WINNING PRIZE
                   </span>
                   <span className="text-amber-400 font-bold tracking-wider text-sm">
-                    ₹2,500 INR
+                    {prizePool}
                   </span>
                   <span className="text-white/40 text-[9px] block">Whole Team Prize</span>
                 </div>
@@ -98,6 +102,18 @@ export default function EventsTournamentHub() {
                 >
                   VIEW FULL MATCH RECORD →
                 </button>
+                {siteConfig.tournament?.registrationUrl && (
+                  <a
+                    href={siteConfig.tournament.registrationUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-interactive="true"
+                    className="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-black font-bold tracking-widest text-xs uppercase rounded transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)] cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>REGISTER SQUAD</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
                 <a
                   href="https://discord.com/api/oauth2/authorize?client_id=1543275777146097755&permissions=274877991936&scope=bot%20applications.commands"
                   target="_blank"

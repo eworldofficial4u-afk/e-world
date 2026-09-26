@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 interface BlockHeroProps {
   onlinePlayers: number;
@@ -16,7 +17,8 @@ export default function BlockHero({
   serverTps,
 }: BlockHeroProps) {
   const [copied, setCopied] = useState(false);
-  const serverIP = "mc.eworld.net";
+  const { siteConfig } = useSiteConfig();
+  const serverIP = siteConfig.realms?.smp?.serverIp || "mc.eworld.net";
 
   const handleCopy = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {

@@ -1,23 +1,362 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import {
   creators as initialCreators,
   Creator,
+  CreatorSocials,
   ROLE_STAR_CREATORS_ID,
   ROLE_CONTENT_CREATOR_ID,
 } from "../data/creators";
+import { Search, X, Check, Copy, ExternalLink, Sparkles, ShieldCheck } from "lucide-react";
+
+// ============================================================================
+// URL & HANDLE NORMALIZATION HELPERS
+// ============================================================================
+
+export function ensureAbsoluteUrl(platform: string, rawUrl: string): string {
+  if (!rawUrl) return "#";
+  const trimmed = rawUrl.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  const clean = trimmed.replace(/^[@/]+/, "");
+  switch (platform) {
+    case "youtube":
+      return `https://youtube.com/@${clean}`;
+    case "twitch":
+      return `https://twitch.tv/${clean}`;
+    case "twitter":
+      return `https://x.com/${clean}`;
+    case "instagram":
+      return `https://instagram.com/${clean}`;
+    case "discord":
+      return trimmed.startsWith("discord.gg/") ? `https://${trimmed}` : `https://discord.gg/${clean}`;
+    case "kick":
+      return `https://kick.com/${clean}`;
+    case "spotify":
+      return `https://open.spotify.com/user/${clean}`;
+    case "steam":
+      return `https://steamcommunity.com/id/${clean}`;
+    case "github":
+      return `https://github.com/${clean}`;
+    case "reddit":
+      return `https://reddit.com/u/${clean}`;
+    case "bluesky":
+      return `https://bsky.app/profile/${clean}`;
+    case "paypal":
+      return `https://paypal.me/${clean}`;
+    default:
+      return `https://${trimmed}`;
+  }
+}
+
+export function getHandleFromUrl(platform: string, url: string, fallback: string): string {
+  if (!url) return fallback;
+  try {
+    const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    if (pathParts.length > 0) {
+      const last = pathParts[pathParts.length - 1];
+      if (platform === "youtube") return decodeURIComponent(last.replace(/^@/, ""));
+      if (platform === "spotify") {
+        if (parsed.pathname.includes("/user/")) return decodeURIComponent(last);
+        return fallback || "Spotify Account";
+      }
+      return decodeURIComponent(last.replace(/^@/, ""));
+    }
+  } catch {
+    return url.replace(/^[@/]+/, "");
+  }
+  return fallback;
+}
+
+// ============================================================================
+// PLATFORM METADATA REGISTRY (Discord Connections UI)
+// ============================================================================
+
+interface PlatformMeta {
+  label: string;
+  badgeBg: string;
+  badgeText: string;
+  borderColor: string;
+  hoverBorder: string;
+  icon: (className?: string) => React.ReactNode;
+}
+
+const PLATFORM_REGISTRY: Record<string, PlatformMeta> = {
+  youtube: {
+    label: "YouTube",
+    badgeBg: "#FF0000",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    hoverBorder: "rgba(239, 68, 68, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+      </svg>
+    ),
+  },
+  twitch: {
+    label: "Twitch",
+    badgeBg: "#9146FF",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(168, 85, 247, 0.3)",
+    hoverBorder: "rgba(168, 85, 247, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
+      </svg>
+    ),
+  },
+  twitter: {
+    label: "Twitter / X",
+    badgeBg: "#000000",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    hoverBorder: "rgba(255, 255, 255, 0.6)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    ),
+  },
+  instagram: {
+    label: "Instagram",
+    badgeBg: "#E1306C",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(236, 72, 153, 0.3)",
+    hoverBorder: "rgba(236, 72, 153, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+      </svg>
+    ),
+  },
+  discord: {
+    label: "Discord",
+    badgeBg: "#5865F2",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(99, 102, 241, 0.3)",
+    hoverBorder: "rgba(99, 102, 241, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+      </svg>
+    ),
+  },
+  kick: {
+    label: "Kick",
+    badgeBg: "#53FC18",
+    badgeText: "#000000",
+    borderColor: "rgba(83, 252, 24, 0.3)",
+    hoverBorder: "rgba(83, 252, 24, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 font-black text-black text-[11px]") => (
+      <span className={cls}>K</span>
+    ),
+  },
+  spotify: {
+    label: "Spotify",
+    badgeBg: "#1DB954",
+    badgeText: "#000000",
+    borderColor: "rgba(29, 185, 84, 0.3)",
+    hoverBorder: "rgba(29, 185, 84, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-black") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+      </svg>
+    ),
+  },
+  steam: {
+    label: "Steam",
+    badgeBg: "#171a21",
+    badgeText: "#00adee",
+    borderColor: "rgba(56, 189, 248, 0.3)",
+    hoverBorder: "rgba(56, 189, 248, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-cyan-400") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.707L.426 15.02C1.706 20.28 6.388 24 11.98 24c6.627 0 12-5.373 12-12s-5.373-12-12-12z" />
+      </svg>
+    ),
+  },
+  github: {
+    label: "GitHub",
+    badgeBg: "#24292e",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    hoverBorder: "rgba(255, 255, 255, 0.6)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+      </svg>
+    ),
+  },
+  reddit: {
+    label: "Reddit",
+    badgeBg: "#FF4500",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(249, 115, 22, 0.3)",
+    hoverBorder: "rgba(249, 115, 22, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.197-2.512-.73a.326.326 0 0 0-.232-.095z" />
+      </svg>
+    ),
+  },
+  bluesky: {
+    label: "Bluesky",
+    badgeBg: "#0285FF",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(2, 133, 255, 0.3)",
+    hoverBorder: "rgba(2, 133, 255, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566 1.01 1.2 1.8 1.2 3.84c0 3.328 1.8 8.64 4.8 11.04-3.6-1.2-6-3.6-6-7.2 0-3.6 2.4-7.2 6-7.2 3.12 0 5.4 3.84 6 5.52.6-1.68 2.88-5.52 6-5.52 3.6 0 6 3.6 6 7.2 0 3.6-2.4 6-6 7.2 3-2.4 4.8-7.712 4.8-11.04 0-2.04-1.366-2.83-4.002-1.035C16.046 4.747 13.087 8.686 12 10.8z" />
+      </svg>
+    ),
+  },
+  roblox: {
+    label: "Roblox",
+    badgeBg: "#E2231A",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(226, 35, 26, 0.3)",
+    hoverBorder: "rgba(226, 35, 26, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M5.165 0L0 18.835 18.835 24 24 5.165 5.165 0zm10.79 14.73l-4.524 1.212-1.212-4.524 4.524-1.212 1.212 4.524z" />
+      </svg>
+    ),
+  },
+  paypal: {
+    label: "PayPal",
+    badgeBg: "#003087",
+    badgeText: "#FFFFFF",
+    borderColor: "rgba(0, 48, 135, 0.3)",
+    hoverBorder: "rgba(0, 48, 135, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-white") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.82.903 5.093-.727 4.103-3.21 6.551-7.18 6.551H9.98c-.469 0-.868.341-.941.805l-1.963 7.078zm13.62-13.882C20.61 5.674 19.34 4.5 16.94 4.5h-6.26c-.35 0-.648.256-.703.604L7.54 20.301l-.01.071a.48.48 0 0 0 .473.555h3.454c.35 0 .649-.256.704-.604l.794-5.026c.074-.464.473-.805.942-.805h1.89c2.977 0 4.84-1.836 5.385-4.914.404-2.287.05-3.87-1.47-5.034z" />
+      </svg>
+    ),
+  },
+  website: {
+    label: "Website",
+    badgeBg: "#06B6D4",
+    badgeText: "#000000",
+    borderColor: "rgba(6, 182, 212, 0.3)",
+    hoverBorder: "rgba(6, 182, 212, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-none stroke-current stroke-2") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    ),
+  },
+  domain: {
+    label: "Domain",
+    badgeBg: "#06B6D4",
+    badgeText: "#000000",
+    borderColor: "rgba(6, 182, 212, 0.3)",
+    hoverBorder: "rgba(6, 182, 212, 0.7)",
+    icon: (cls = "w-3.5 h-3.5 fill-none stroke-current stroke-2") => (
+      <svg viewBox="0 0 24 24" className={cls}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    ),
+  },
+};
+
+// ============================================================================
+// AVATAR WITH AUTOMATIC LOAD-ERROR RESILIENCE
+// ============================================================================
+
+function CreatorAvatar({
+  avatarUrl,
+  name,
+  initials,
+  gradient,
+  glow,
+}: {
+  avatarUrl?: string;
+  name: string;
+  initials: string;
+  gradient?: string;
+  glow?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const effectiveGradient =
+    gradient || "linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)";
+  const effectiveGlow = glow || "rgba(245, 158, 11, 0.45)";
+
+  const hasValidUrl = Boolean(avatarUrl && avatarUrl.trim().length > 0 && !imgError);
+
+  return (
+    <div className="relative shrink-0">
+      {hasValidUrl ? (
+        <div
+          className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl overflow-hidden border border-white/20 shadow-lg transition-transform duration-300 group-hover:scale-105 relative bg-zinc-900"
+          style={{ boxShadow: `0 0 25px ${effectiveGlow}` }}
+        >
+          <Image
+            src={avatarUrl!}
+            alt={name}
+            width={56}
+            height={56}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+            unoptimized
+          />
+        </div>
+      ) : (
+        <div
+          className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-extrabold text-base sm:text-lg text-black shadow-lg border border-white/20 transition-transform duration-300 group-hover:scale-105 select-none"
+          style={{
+            background: effectiveGradient,
+            boxShadow: `0 0 25px ${effectiveGlow}`,
+          }}
+        >
+          {initials || name.slice(0, 3).toUpperCase()}
+        </div>
+      )}
+      {/* Live/Verified Indicator Dot */}
+      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-black flex items-center justify-center">
+        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+      </span>
+    </div>
+  );
+}
+
+// ============================================================================
+// MAIN CREATOR GUILD SECTION
+// ============================================================================
 
 export default function CreatorGuildSection() {
   const [creatorsList, setCreatorsList] = useState<Creator[]>(initialCreators);
   const [activeCategory, setActiveCategory] = useState<"all" | "Star Creator" | "Content Creator">("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedHandle, setCopiedHandle] = useState<string | null>(null);
   const [isLiveSynced, setIsLiveSynced] = useState<boolean>(false);
 
-  // Auto-fetch creators dynamically using Discord Role IDs
+  // Auto-fetch creators dynamically using Discord Role IDs and Admin customizations
   useEffect(() => {
     let isMounted = true;
+
+    // 1. Initial LocalStorage check for instant admin reflection
+    try {
+      const saved = localStorage.getItem("eworld_creators_list");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
+          setCreatorsList(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn("[Creators] Local storage load error:", e);
+    }
 
     const fetchRoleCreators = async () => {
       try {
@@ -30,32 +369,136 @@ export default function CreatorGuildSection() {
 
         if (incoming && incoming.length > 0 && isMounted) {
           setCreatorsList((prev) => {
-            // Authoritative live sync from Discord roles & presence
-            const existingMap = new Map(prev.map((c) => [c.username.toLowerCase(), c]));
-            return incoming.map((live) => {
-              const existing = existingMap.get(live.username.toLowerCase());
+            // Check deleted creator IDs from admin
+            let deletedIds = new Set<string>();
+            try {
+              const delSaved = localStorage.getItem("eworld_creators_deleted");
+              if (delSaved) {
+                const parsedDel = JSON.parse(delSaved);
+                if (Array.isArray(parsedDel)) {
+                  parsedDel.forEach((id: string) => deletedIds.add(id));
+                }
+              }
+            } catch (_) {}
+
+            // Check local overrides from Admin Panel (highest authority)
+            let localSavedList: Creator[] | null = null;
+            try {
+              const localSaved = localStorage.getItem("eworld_creators_list");
+              if (localSaved) {
+                const parsed = JSON.parse(localSaved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  localSavedList = parsed;
+                }
+              }
+            } catch (_) {}
+
+            // The roster source of truth: local admin save, or existing state, or initialCreators
+            const baseList = localSavedList || (prev.length > 0 ? prev : initialCreators);
+
+            const incomingMap = new Map<string, Creator>();
+            incoming.forEach((c) => {
+              if (c.id) incomingMap.set(c.id, c);
+              if (c.username) incomingMap.set(c.username.toLowerCase(), c);
+            });
+
+            // 1. Enrich existing creators without overwriting custom admin data
+            const enriched = baseList.map((creator) => {
+              const live = incomingMap.get(creator.id) || incomingMap.get(creator.username.toLowerCase());
+              if (!live) return creator;
+
+              // Only enrich avatarUrl if creator doesn't have a custom one
+              const avatarUrl = creator.avatarUrl || live.avatarUrl;
+
               return {
-                ...(existing || {}),
-                ...live,
-                // Only retain genuinely connected links - zero random or fake placeholders
-                links: { ...(live.links || {}) },
-                bioLink: live.bioLink || existing?.bioLink,
+                ...creator,
+                avatarUrl,
               };
             });
+
+            // 2. Discover newly added creators from Discord bot (unless deleted by admin)
+            const existingIds = new Set(enriched.map((c) => c.id));
+            const existingUsernames = new Set(enriched.map((c) => c.username.toLowerCase()));
+
+            incoming.forEach((live) => {
+              if (
+                !existingIds.has(live.id) &&
+                !existingUsernames.has(live.username.toLowerCase()) &&
+                !deletedIds.has(live.id) &&
+                !deletedIds.has(live.username.toLowerCase())
+              ) {
+                // Sanitize links: remove legacy bio key
+                const sanitizedLinks = { ...(live.links || {}) };
+                delete (sanitizedLinks as any).bio;
+
+                enriched.push({
+                  ...live,
+                  links: sanitizedLinks,
+                  specialties: Array.isArray(live.specialties) ? live.specialties : ["Gaming", "Creator"],
+                  subscribers: live.subscribers || "Discord Role Verified",
+                  tag: live.tag || `@${live.username}`,
+                });
+              }
+            });
+
+            return enriched;
           });
           setIsLiveSynced(true);
         }
       } catch (err) {
-        // Fallback safely to initial curated roster
-        console.warn("[Creators Auto-Fetch] Using curated data:", err);
+        console.warn("[Creators Auto-Fetch] Using curated/admin data:", err);
       }
     };
 
     fetchRoleCreators();
-    const interval = setInterval(fetchRoleCreators, 30000); // 30s auto-refresh polling
+    const interval = setInterval(fetchRoleCreators, 30000);
+
+    // BroadcastChannel for instant cross-tab real-time sync with Admin Panel
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        channel = new BroadcastChannel("eworld_admin_channel");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "CREATORS_UPDATED" && Array.isArray(event.data.payload) && isMounted) {
+            setCreatorsList(event.data.payload);
+          }
+        };
+      } catch (err) {
+        console.warn("[Creators] BroadcastChannel init error:", err);
+      }
+    }
+
+    // Cross-tab and in-page real-time sync with Admin Panel
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "eworld_creators_list" && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          if (Array.isArray(updated) && isMounted) {
+            setCreatorsList(updated);
+          }
+        } catch (_) {}
+      }
+    };
+
+    const handleCustom = (e: any) => {
+      if (Array.isArray(e.detail) && isMounted) {
+        setCreatorsList(e.detail);
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("eworld:creators-updated", handleCustom);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (channel) {
+        try {
+          channel.close();
+        } catch (_) {}
+      }
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("eworld:creators-updated", handleCustom);
     };
   }, []);
 
@@ -67,8 +510,39 @@ export default function CreatorGuildSection() {
     }, 2000);
   };
 
-  const starCreators = creatorsList.filter((c) => c.category === "Star Creator");
-  const contentCreators = creatorsList.filter((c) => c.category === "Content Creator");
+  // Filter creators based on category and search query
+  const filteredCreators = useMemo(() => {
+    return creatorsList.filter((c) => {
+      // Category filter
+      if (activeCategory !== "all" && c.category !== activeCategory) {
+        return false;
+      }
+      // Search query filter
+      if (searchQuery.trim().length > 0) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesName = c.name.toLowerCase().includes(q);
+        const matchesUsername = c.username.toLowerCase().includes(q);
+        const matchesTag = c.tag.toLowerCase().includes(q);
+        const matchesRole = c.role.toLowerCase().includes(q);
+        const matchesQuote = (c.featuredQuote || "").toLowerCase().includes(q);
+        const matchesBio = (c.bio || "").toLowerCase().includes(q);
+        const matchesSpecialties = (c.specialties || []).some((s) => s.toLowerCase().includes(q));
+        return (
+          matchesName ||
+          matchesUsername ||
+          matchesTag ||
+          matchesRole ||
+          matchesQuote ||
+          matchesBio ||
+          matchesSpecialties
+        );
+      }
+      return true;
+    });
+  }, [creatorsList, activeCategory, searchQuery]);
+
+  const starCreators = filteredCreators.filter((c) => c.category === "Star Creator");
+  const contentCreators = filteredCreators.filter((c) => c.category === "Content Creator");
 
   return (
     <section id="creators" className="relative w-full py-16 px-4 sm:px-6 font-mono z-20">
@@ -76,7 +550,7 @@ export default function CreatorGuildSection() {
         {/* ================================================================ */}
         {/* 1. SECTION HEADER: E-WORLD CREATORS */}
         {/* ================================================================ */}
-        <div className="flex flex-col items-center text-center mb-12">
+        <div className="flex flex-col items-center text-center mb-10">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             <span className="text-amber-400 text-xs tracking-widest font-bold uppercase">
@@ -128,53 +602,92 @@ export default function CreatorGuildSection() {
             </span>
           </div>
 
-          {/* Interactive Category Filter Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-6 p-1.5 bg-black/60 border border-white/10 rounded-xl backdrop-blur-md">
-            <button
-              onClick={() => setActiveCategory("all")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider transition-all duration-200 cursor-pointer ${
-                activeCategory === "all"
-                  ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              ALL CREATORS ({creatorsList.length})
-            </button>
-            <button
-              onClick={() => setActiveCategory("Star Creator")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider transition-all duration-200 flex items-center gap-2 cursor-pointer ${
-                activeCategory === "Star Creator"
-                  ? "bg-gradient-to-r from-amber-400 to-orange-400 text-black shadow-[0_0_20px_rgba(245,158,11,0.5)]"
-                  : "text-amber-400/80 hover:text-amber-300 hover:bg-amber-400/10"
-              }`}
-            >
-              <span>★</span> STAR CREATORS ({starCreators.length})
-            </button>
-            <button
-              onClick={() => setActiveCategory("Content Creator")}
-              className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider transition-all duration-200 flex items-center gap-2 cursor-pointer ${
-                activeCategory === "Content Creator"
-                  ? "bg-gradient-to-r from-cyan-400 to-blue-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.5)]"
-                  : "text-cyan-400/80 hover:text-cyan-300 hover:bg-cyan-400/10"
-              }`}
-            >
-              <span>⚡</span> CONTENT CREATORS ({contentCreators.length})
-            </button>
+          {/* Quick Search & Category Filters */}
+          <div className="w-full max-w-xl mt-6 space-y-3">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search creators by name, handle, role, or game..."
+                className="w-full pl-10 pr-9 py-2.5 bg-black/60 border border-white/15 rounded-xl text-xs text-white placeholder-white/40 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40 backdrop-blur-md transition-all font-mono"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Interactive Category Filter Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 p-1.5 bg-black/60 border border-white/10 rounded-xl backdrop-blur-md">
+              <button
+                onClick={() => setActiveCategory("all")}
+                className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider transition-all duration-200 cursor-pointer ${
+                  activeCategory === "all"
+                    ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                ALL CREATORS ({creatorsList.length})
+              </button>
+              <button
+                onClick={() => setActiveCategory("Star Creator")}
+                className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                  activeCategory === "Star Creator"
+                    ? "bg-gradient-to-r from-amber-400 to-orange-400 text-black shadow-[0_0_20px_rgba(245,158,11,0.5)]"
+                    : "text-amber-400/80 hover:text-amber-300 hover:bg-amber-400/10"
+                }`}
+              >
+                <span>★</span> STAR CREATORS ({creatorsList.filter((c) => c.category === "Star Creator").length})
+              </button>
+              <button
+                onClick={() => setActiveCategory("Content Creator")}
+                className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wider transition-all duration-200 flex items-center gap-2 cursor-pointer ${
+                  activeCategory === "Content Creator"
+                    ? "bg-gradient-to-r from-cyan-400 to-blue-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+                    : "text-cyan-400/80 hover:text-cyan-300 hover:bg-cyan-400/10"
+                }`}
+              >
+                <span>⚡</span> CONTENT CREATORS ({creatorsList.filter((c) => c.category === "Content Creator").length})
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Copy Notification Toast */}
         {copiedHandle && (
           <div className="fixed bottom-6 right-6 z-50 bg-amber-400 text-black px-4 py-2.5 rounded-lg font-bold text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom duration-300">
-            <span>✓</span>
+            <Check className="w-4 h-4" />
             <span>Copied {copiedHandle} to clipboard!</span>
+          </div>
+        )}
+
+        {/* No Search Results */}
+        {filteredCreators.length === 0 && (
+          <div className="p-12 text-center border border-white/10 rounded-2xl bg-zinc-950/60 my-8">
+            <Search className="w-8 h-8 text-white/30 mx-auto mb-3" />
+            <h4 className="text-white font-bold text-sm tracking-wide uppercase">No creators found</h4>
+            <p className="text-white/50 text-xs mt-1">No creators matched &ldquo;{searchQuery}&rdquo;</p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+            >
+              Clear Search Filter
+            </button>
           </div>
         )}
 
         {/* ================================================================ */}
         {/* 2. CATEGORY 1: STAR CREATORS */}
         {/* ================================================================ */}
-        {(activeCategory === "all" || activeCategory === "Star Creator") && (
+        {(activeCategory === "all" || activeCategory === "Star Creator") && starCreators.length > 0 && (
           <div className="mb-14">
             {/* Category Sub-Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-400/30 pb-3 mb-8">
@@ -184,7 +697,7 @@ export default function CreatorGuildSection() {
                 </span>
                 <div>
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-wider uppercase">
-                    STAR CREATORS
+                    STAR CREATORS ({starCreators.length})
                   </h3>
                   <span className="text-white/40 text-[11px] tracking-widest block font-sans">
                     Premier media icons & cinematic storytellers • Role ID: {ROLE_STAR_CREATORS_ID}
@@ -214,7 +727,7 @@ export default function CreatorGuildSection() {
         {/* ================================================================ */}
         {/* 3. CATEGORY 2: CONTENT CREATORS */}
         {/* ================================================================ */}
-        {(activeCategory === "all" || activeCategory === "Content Creator") && (
+        {(activeCategory === "all" || activeCategory === "Content Creator") && contentCreators.length > 0 && (
           <div className="mb-14">
             {/* Category Sub-Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-cyan-400/30 pb-3 mb-8">
@@ -224,7 +737,7 @@ export default function CreatorGuildSection() {
                 </span>
                 <div>
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-wider uppercase">
-                    CONTENT CREATORS
+                    CONTENT CREATORS ({contentCreators.length})
                   </h3>
                   <span className="text-white/40 text-[11px] tracking-widest block font-sans">
                     Competitive casters, roleplay leads & community variety streamers • Role ID: {ROLE_CONTENT_CREATOR_ID}
@@ -283,29 +796,10 @@ export default function CreatorGuildSection() {
   );
 }
 
-function getHandleFromUrl(platform: string, url: string, fallback: string): string {
-  if (!url) return fallback;
-  try {
-    const parsed = new URL(url);
-    const pathParts = parsed.pathname.split("/").filter(Boolean);
-    if (pathParts.length > 0) {
-      const last = pathParts[pathParts.length - 1];
-      if (platform === "youtube") return decodeURIComponent(last.replace(/^@/, ""));
-      if (platform === "spotify") {
-        if (parsed.pathname.includes("/user/")) return decodeURIComponent(last);
-        return fallback || "Spotify Account";
-      }
-      return decodeURIComponent(last.replace(/^@/, ""));
-    }
-  } catch {
-    return url.replace(/^@/, "");
-  }
-  return fallback;
-}
-
 // ============================================================================
 // INDIVIDUAL CREATOR CARD COMPONENT
 // ============================================================================
+
 interface CreatorCardProps {
   creator: Creator;
   isStar: boolean;
@@ -314,6 +808,36 @@ interface CreatorCardProps {
 }
 
 function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardProps) {
+  // Collect all valid connection links, filtering out legacy 'bio'
+  const activeLinks = useMemo(() => {
+    const list: Array<{ platform: string; url: string; meta?: PlatformMeta }> = [];
+    if (!creator.links) return list;
+
+    Object.entries(creator.links).forEach(([key, val]) => {
+      if (key !== "bio" && typeof val === "string" && val.trim().length > 0) {
+        list.push({
+          platform: key,
+          url: ensureAbsoluteUrl(key, val),
+          meta: PLATFORM_REGISTRY[key.toLowerCase()],
+        });
+      }
+    });
+
+    return list;
+  }, [creator.links]);
+
+  const specialtiesList = Array.isArray(creator.specialties) ? creator.specialties : [];
+  const handleTag = creator.tag || `@${creator.username}`;
+
+  // Clean formatted reach string
+  const reachFormatted = useMemo(() => {
+    const sub = creator.subscribers || "Discord Role Verified";
+    if (sub.toLowerCase().includes("verified") || sub.toLowerCase().includes("citizen")) {
+      return sub;
+    }
+    return `${sub} CITIZENS`;
+  }, [creator.subscribers]);
+
   return (
     <div
       className={`relative hologram-glass rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 group shadow-xl ${
@@ -348,40 +872,13 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
         {/* Card Header: Avatar, Name, Handle, Badge */}
         <div className="flex items-start justify-between gap-3 mb-5">
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Holographic Avatar Box */}
-            <div className="relative shrink-0">
-              {creator.avatarUrl ? (
-                <div
-                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl overflow-hidden border border-white/20 shadow-lg transition-transform duration-300 group-hover:scale-105 relative bg-zinc-900"
-                  style={{
-                    boxShadow: `0 0 25px ${creator.avatarGlow}`,
-                  }}
-                >
-                  <Image
-                    src={creator.avatarUrl}
-                    alt={creator.name}
-                    width={56}
-                    height={56}
-                    className="w-full h-full object-cover"
-                    unoptimized
-                  />
-                </div>
-              ) : (
-                <div
-                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center font-extrabold text-base sm:text-lg text-black shadow-lg border border-white/20 transition-transform duration-300 group-hover:scale-105"
-                  style={{
-                    background: creator.avatarGradient,
-                    boxShadow: `0 0 25px ${creator.avatarGlow}`,
-                  }}
-                >
-                  {creator.initials}
-                </div>
-              )}
-              {/* Live/Verified Indicator Dot */}
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-black flex items-center justify-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              </span>
-            </div>
+            <CreatorAvatar
+              avatarUrl={creator.avatarUrl}
+              name={creator.name}
+              initials={creator.initials}
+              gradient={creator.avatarGradient}
+              glow={creator.avatarGlow}
+            />
 
             {/* Name & Handle */}
             <div>
@@ -401,13 +898,13 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
 
               {/* Tag / Copy Button */}
               <button
-                onClick={() => onCopyTag(creator.tag)}
+                onClick={() => onCopyTag(handleTag)}
                 title="Click to copy handle"
                 className="flex items-center gap-1 text-white/50 hover:text-amber-300 text-xs tracking-wider transition-colors cursor-pointer group/tag"
               >
-                <span>{creator.tag}</span>
+                <span>{handleTag}</span>
                 <span className="text-[10px] opacity-60 group-hover/tag:opacity-100">
-                  {copiedHandle === creator.tag ? "✓ copied" : "⎘"}
+                  {copiedHandle === handleTag ? "✓ copied" : "⎘"}
                 </span>
               </button>
             </div>
@@ -431,16 +928,18 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
         </p>
 
         {/* Specialties Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {creator.specialties.map((spec, i) => (
-            <span
-              key={i}
-              className="px-2 py-0.5 bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 text-[10px] rounded-md tracking-wider transition-colors"
-            >
-              {spec}
-            </span>
-          ))}
-        </div>
+        {specialtiesList.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {specialtiesList.map((spec, i) => (
+              <span
+                key={i}
+                className="px-2 py-0.5 bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 text-[10px] rounded-md tracking-wider transition-colors"
+              >
+                {spec}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Discord Profile Bio Box */}
         {(creator.bio || creator.featuredQuote) && (
@@ -461,11 +960,14 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
           </div>
         )}
 
-        {/* Discord Profile Connections Panel (Matching Discord Profile Connections UI) */}
+        {/* Discord Profile Connections Panel */}
         <div className="mb-5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-white/50 font-mono tracking-wider uppercase font-bold flex items-center gap-1.5">
               <span>Connections</span>
+              {activeLinks.length > 0 && (
+                <span className="text-white/30 text-[9px]">({activeLinks.length})</span>
+              )}
             </span>
             <span className="text-[9px] text-emerald-400 font-mono flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -473,142 +975,51 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {/* Spotify Connection */}
-            {creator.links.spotify && (
-              <a
-                href={creator.links.spotify}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-emerald-500/50 transition-all duration-200 group/conn shadow-sm"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-[#1DB954] flex items-center justify-center shrink-0 shadow-sm text-black">
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-black">
-                      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-semibold text-white/95 truncate group-hover/conn:text-white">
-                    {getHandleFromUrl("spotify", creator.links.spotify, creator.username)}
-                  </span>
-                </div>
-                <span className="text-white/40 group-hover/conn:text-emerald-400 text-xs transition-colors">↗</span>
-              </a>
-            )}
+          {activeLinks.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {activeLinks.map(({ platform, url, meta }) => {
+                const displayName = meta?.label || platform.toUpperCase();
+                const handle = getHandleFromUrl(platform, url, creator.username);
+                const bgStyle = meta?.badgeBg ? { backgroundColor: meta.badgeBg } : { backgroundColor: "#333333" };
 
-            {/* Twitch Connection */}
-            {creator.links.twitch && (
-              <a
-                href={creator.links.twitch}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-purple-500/50 transition-all duration-200 group/conn shadow-sm"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-[#9146FF] flex items-center justify-center shrink-0 shadow-sm text-white">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
-                      <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-semibold text-white/95 truncate group-hover/conn:text-white">
-                    {getHandleFromUrl("twitch", creator.links.twitch, creator.username)}
-                  </span>
-                </div>
-                <span className="text-white/40 group-hover/conn:text-purple-400 text-xs transition-colors">↗</span>
-              </a>
-            )}
-
-            {/* YouTube Connection */}
-            {creator.links.youtube && (
-              <a
-                href={creator.links.youtube}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-red-500/50 transition-all duration-200 group/conn shadow-sm"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-[#FF0000] flex items-center justify-center shrink-0 shadow-sm text-white">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-semibold text-white/95 truncate group-hover/conn:text-white">
-                    {getHandleFromUrl("youtube", creator.links.youtube, creator.username)}
-                  </span>
-                </div>
-                <span className="text-white/40 group-hover/conn:text-red-400 text-xs transition-colors">↗</span>
-              </a>
-            )}
-
-            {/* X / Twitter Connection */}
-            {creator.links.twitter && (
-              <a
-                href={creator.links.twitter}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-white/40 transition-all duration-200 group/conn shadow-sm"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center shrink-0 shadow-sm text-white">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-semibold text-white/95 truncate group-hover/conn:text-white">
-                    {getHandleFromUrl("twitter", creator.links.twitter, creator.username)}
-                  </span>
-                </div>
-                <span className="text-white/40 group-hover/conn:text-white text-xs transition-colors">↗</span>
-              </a>
-            )}
-
-            {/* Steam Connection */}
-            {creator.links.steam && (
-              <a
-                href={creator.links.steam}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-cyan-500/50 transition-all duration-200 group/conn shadow-sm"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-[#171a21] flex items-center justify-center shrink-0 shadow-sm text-cyan-400">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                      <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.707L.426 15.02C1.706 20.28 6.388 24 11.98 24c6.627 0 12-5.373 12-12s-5.373-12-12-12z" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-semibold text-white/95 truncate group-hover/conn:text-white">
-                    {getHandleFromUrl("steam", creator.links.steam, creator.username)}
-                  </span>
-                </div>
-                <span className="text-white/40 group-hover/conn:text-cyan-400 text-xs transition-colors">↗</span>
-              </a>
-            )}
-
-            {/* Instagram Connection */}
-            {creator.links.instagram && (
-              <a
-                href={creator.links.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-pink-500/50 transition-all duration-200 group/conn shadow-sm"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 flex items-center justify-center shrink-0 shadow-sm text-white">
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
-                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-semibold text-white/95 truncate group-hover/conn:text-white">
-                    {getHandleFromUrl("instagram", creator.links.instagram, creator.username)}
-                  </span>
-                </div>
-                <span className="text-white/40 group-hover/conn:text-pink-400 text-xs transition-colors">↗</span>
-              </a>
-            )}
-          </div>
-
-          {/* Fallback if no specific social connection is linked */}
-          {(!creator.links || Object.keys(creator.links).filter(k => k !== 'bio').length === 0) && (
+                return (
+                  <a
+                    key={platform}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-white/10 hover:border-white/30 transition-all duration-200 group/conn shadow-sm"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 shadow-sm"
+                        style={bgStyle}
+                      >
+                        {meta ? (
+                          meta.icon()
+                        ) : (
+                          <span className="text-[9px] font-bold text-white uppercase">
+                            {platform.slice(0, 2)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[9px] text-white/40 uppercase font-mono font-bold leading-tight">
+                          {displayName}
+                        </span>
+                        <span className="text-xs font-semibold text-white/95 truncate group-hover/conn:text-white leading-tight">
+                          {handle}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-white/40 group-hover/conn:text-white text-xs transition-colors shrink-0 pl-1">
+                      ↗
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
             <div className="p-3 rounded-xl bg-zinc-900/50 border border-dashed border-white/10 flex items-center justify-between">
               <span className="text-xs text-white/40">No connections linked yet</span>
               <a
@@ -637,16 +1048,16 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
               isStar ? "text-amber-400" : "text-cyan-300"
             }`}
           >
-            {creator.subscribers} CITIZENS
+            {reachFormatted}
           </span>
         </div>
 
-        {/* Social Media Link Buttons - Strictly Connected Links Only (All 21 Discord Connection Types) */}
+        {/* Social Media Link Buttons */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {/* Connected Bio Link */}
           {creator.bioLink && (
             <SocialButton
-              href={creator.bioLink}
+              href={ensureAbsoluteUrl("website", creator.bioLink)}
               label={`Creator Bio (${creator.bioLink})`}
               colorClass="hover:bg-amber-500/20 hover:border-amber-500/60 hover:text-amber-300 hover:shadow-[0_0_15px_rgba(245,158,11,0.4)]"
             >
@@ -657,317 +1068,23 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
             </SocialButton>
           )}
 
-          {/* YouTube */}
-          {creator.links.youtube && (
-            <SocialButton
-              href={creator.links.youtube}
-              label="YouTube"
-              colorClass="hover:bg-red-500/20 hover:border-red-500/60 hover:text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Twitch */}
-          {creator.links.twitch && (
-            <SocialButton
-              href={creator.links.twitch}
-              label="Twitch"
-              colorClass="hover:bg-purple-500/20 hover:border-purple-500/60 hover:text-purple-400 hover:shadow-[0_0_15px_rgba(168,85,247,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* X / Twitter */}
-          {creator.links.twitter && (
-            <SocialButton
-              href={creator.links.twitter}
-              label="X / Twitter"
-              colorClass="hover:bg-white/15 hover:border-white/50 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Steam */}
-          {creator.links.steam && (
-            <SocialButton
-              href={creator.links.steam}
-              label="Steam"
-              colorClass="hover:bg-slate-700/40 hover:border-slate-400/60 hover:text-cyan-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.707L.426 15.02C1.706 20.28 6.388 24 11.98 24c6.627 0 12-5.373 12-12s-5.373-12-12-12zM8.366 17.585l-1.921-.795c.29-.441.777-.733 1.332-.733.24 0 .463.056.666.148l-.077 1.38zm7.574-8.675c0-1.654-1.346-3-3-3s-3 1.346-3 3 1.346 3 3 3 3-1.346 3-3zm-5.25 0c0-1.241 1.009-2.25 2.25-2.25s2.25 1.009 2.25 2.25-1.009 2.25-2.25 2.25-2.25-1.009-2.25-2.25z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Spotify */}
-          {creator.links.spotify && (
-            <SocialButton
-              href={creator.links.spotify}
-              label="Spotify"
-              colorClass="hover:bg-emerald-500/20 hover:border-emerald-500/60 hover:text-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* GitHub */}
-          {creator.links.github && (
-            <SocialButton
-              href={creator.links.github}
-              label="GitHub"
-              colorClass="hover:bg-slate-800/40 hover:border-slate-300/60 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Reddit */}
-          {creator.links.reddit && (
-            <SocialButton
-              href={creator.links.reddit}
-              label="Reddit"
-              colorClass="hover:bg-orange-500/20 hover:border-orange-500/60 hover:text-orange-400 hover:shadow-[0_0_15px_rgba(249,115,22,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.197-2.512-.73a.326.326 0 0 0-.232-.095z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Riot Games */}
-          {creator.links.riotgames && (
-            <SocialButton
-              href={creator.links.riotgames}
-              label="Riot Games"
-              colorClass="hover:bg-red-600/20 hover:border-red-600/60 hover:text-red-500 hover:shadow-[0_0_15px_rgba(235,0,41,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M13.882 4.156l-8.625 4.027 1.637 8.358 2.05-1.493-.687-3.951 1.255-.584.73 4.218 3.639-2.651zm5.375 7.159l-1.399 7.027-3.766 2.744 1.488-7.478zM1.986 6.353l.794 4.053 2.39-1.115-.794-4.053zm2.593 13.234l-1.782-9.098 2.39-1.115 1.782 9.098z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Battle.net */}
-          {creator.links.battlenet && (
-            <SocialButton
-              href={creator.links.battlenet}
-              label="Battle.net"
-              colorClass="hover:bg-sky-500/20 hover:border-sky-500/60 hover:text-sky-400 hover:shadow-[0_0_15px_rgba(0,174,239,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M18.847 8.384l-4.577-2.645-1.854 2.87 3.376 1.95a3.953 3.953 0 0 1-1.332 5.372 3.95 3.95 0 0 1-5.385-1.328l-2.88 1.85a7.37 7.37 0 0 0 10.05 2.476 7.377 7.377 0 0 0 2.602-10.545zM9.73 15.39l-3.376-1.95a3.953 3.953 0 0 1 1.332-5.372 3.95 3.95 0 0 1 5.385 1.328l2.88-1.85A7.37 7.37 0 0 0 5.897 5.07a7.377 7.377 0 0 0-2.602 10.545l4.577 2.645 1.854-2.87z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Xbox */}
-          {creator.links.xbox && (
-            <SocialButton
-              href={creator.links.xbox}
-              label="Xbox"
-              colorClass="hover:bg-green-600/20 hover:border-green-600/60 hover:text-green-400 hover:shadow-[0_0_15px_rgba(16,124,16,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M6.02 2.693C8.04.996 10.528 0 12.012 0c1.472 0 3.96 1.008 5.968 2.693 2.197 1.848 3.9 4.38 4.704 6.78-1.14-1.332-2.736-2.544-4.644-3.504-2.124-1.068-4.224-1.632-6.028-1.632-1.8 0-3.9.564-6.024 1.632-1.908.96-3.504 2.172-4.644 3.504.792-2.4 2.496-4.932 4.676-6.78zM.444 14.772c-.288-.936-.444-1.836-.444-2.772 0-2.004.66-3.888 1.764-5.46 1.104 1.488 2.676 3.012 4.488 4.296 2.052 1.452 4.092 2.388 5.748 2.64-1.5.42-3.324.492-5.484.216-2.472-.312-4.524-1.344-6.072-2.92zm23.112 0c-1.548 1.572-3.6 2.604-6.072 2.92-2.16.276-3.984.204-5.484-.216 1.656-.252 3.696-1.188 5.748-2.64 1.812-1.284 3.384-2.808 4.488-4.296 1.104 1.572 1.764 3.456 1.764 5.46 0 .936-.156 1.836-.444 2.772zM12 17.58c-1.896 0-4.056-.408-6.192-1.188.756 1.392 1.956 2.64 3.492 3.6 2.472 1.548 5.064 1.668 5.4 1.668.336 0 2.928-.12 5.4-1.668 1.536-.96 2.736-2.208 3.492-3.6-2.136.78-4.296 1.188-6.192 1.188z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* PlayStation */}
-          {creator.links.playstation && (
-            <SocialButton
-              href={creator.links.playstation}
-              label="PlayStation Network"
-              colorClass="hover:bg-blue-700/20 hover:border-blue-500/60 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(0,55,145,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M8.077 15.688c-.968.36-1.93.599-2.885.719v-2.905c.875-.125 1.776-.367 2.703-.728.847-.333 1.258-.876 1.258-1.578 0-.82-.58-1.428-1.742-1.782l-2.219-.675V3.816l1.838.643c2.614.912 3.969 2.213 3.969 4.103 0 1.664-.997 3.033-2.922 3.842zm9.953 2.502c-.524-.265-1.234-.407-2.129-.407-1.171 0-2.385.271-3.642.813v2.805c1.199-.444 2.264-.672 3.197-.672.637 0 1.092.102 1.365.305.273.203.41.517.41.94 0 .332-.1.62-.299.865l3.87 1.354c.483-.69.725-1.537.725-2.54 0-1.637-.999-2.793-2.997-3.463z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Epic Games */}
-          {creator.links.epicgames && (
-            <SocialButton
-              href={creator.links.epicgames}
-              label="Epic Games"
-              colorClass="hover:bg-zinc-700/40 hover:border-zinc-400/60 hover:text-zinc-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M4.542 0A4.542 4.542 0 0 0 0 4.542v14.916A4.542 4.542 0 0 0 4.542 24h14.916A4.542 4.542 0 0 0 24 19.458V4.542A4.542 4.542 0 0 0 19.458 0H4.542zm6.208 4.356h3.407l4.316 7.643-4.316 7.645H10.75l4.316-7.645-4.316-7.643zm-3.212 0h2.384l4.316 7.643-4.316 7.645H7.538l4.316-7.645-4.316-7.643z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Roblox */}
-          {creator.links.roblox && (
-            <SocialButton
-              href={creator.links.roblox}
-              label="Roblox"
-              colorClass="hover:bg-red-500/20 hover:border-red-500/60 hover:text-red-400 hover:shadow-[0_0_15px_rgba(226,35,26,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M5.165 0L0 18.835 18.835 24 24 5.165 5.165 0zm10.79 14.73l-4.524 1.212-1.212-4.524 4.524-1.212 1.212 4.524z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Bluesky */}
-          {creator.links.bluesky && (
-            <SocialButton
-              href={creator.links.bluesky}
-              label="Bluesky"
-              colorClass="hover:bg-sky-500/20 hover:border-sky-500/60 hover:text-sky-300 hover:shadow-[0_0_15px_rgba(2,133,255,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566 1.01 1.2 1.8 1.2 3.84c0 3.328 1.8 8.64 4.8 11.04-3.6-1.2-6-3.6-6-7.2 0-3.6 2.4-7.2 6-7.2 3.12 0 5.4 3.84 6 5.52.6-1.68 2.88-5.52 6-5.52 3.6 0 6 3.6 6 7.2 0 3.6-2.4 6-6 7.2 3-2.4 4.8-7.712 4.8-11.04 0-2.04-1.366-2.83-4.002-1.035C16.046 4.747 13.087 8.686 12 10.8z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* PayPal */}
-          {creator.links.paypal && (
-            <SocialButton
-              href={creator.links.paypal}
-              label="PayPal"
-              colorClass="hover:bg-blue-600/20 hover:border-blue-600/60 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(0,48,135,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.82.903 5.093-.727 4.103-3.21 6.551-7.18 6.551H9.98c-.469 0-.868.341-.941.805l-1.963 7.078zm13.62-13.882C20.61 5.674 19.34 4.5 16.94 4.5h-6.26c-.35 0-.648.256-.703.604L7.54 20.301l-.01.071a.48.48 0 0 0 .473.555h3.454c.35 0 .649-.256.704-.604l.794-5.026c.074-.464.473-.805.942-.805h1.89c2.977 0 4.84-1.836 5.385-4.914.404-2.287.05-3.87-1.47-5.034z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* eBay */}
-          {creator.links.ebay && (
-            <SocialButton
-              href={creator.links.ebay}
-              label="eBay"
-              colorClass="hover:bg-amber-500/20 hover:border-amber-500/60 hover:text-amber-400 hover:shadow-[0_0_15px_rgba(229,50,56,0.4)]"
-            >
-              <span className="text-[11px] font-extrabold tracking-tight">ebay</span>
-            </SocialButton>
-          )}
-
-          {/* Crunchyroll */}
-          {creator.links.crunchyroll && (
-            <SocialButton
-              href={creator.links.crunchyroll}
-              label="Crunchyroll"
-              colorClass="hover:bg-orange-500/20 hover:border-orange-500/60 hover:text-orange-400 hover:shadow-[0_0_15px_rgba(244,117,33,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M2.99 12a9.01 9.01 0 1 1 18.02 0 9.01 9.01 0 0 1-18.02 0zm14.398 0a5.388 5.388 0 1 0-10.776 0 5.388 5.388 0 0 0 10.776 0z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Amazon Music */}
-          {creator.links.amazonmusic && (
-            <SocialButton
-              href={creator.links.amazonmusic}
-              label="Amazon Music"
-              colorClass="hover:bg-cyan-500/20 hover:border-cyan-500/60 hover:text-cyan-400 hover:shadow-[0_0_15px_rgba(37,209,218,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current stroke-2">
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" fill="currentColor" />
-                <circle cx="18" cy="16" r="3" fill="currentColor" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Bungie */}
-          {creator.links.bungie && (
-            <SocialButton
-              href={creator.links.bungie}
-              label="Bungie.net"
-              colorClass="hover:bg-white/15 hover:border-white/50 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l-8-4v8l8 4 8-4v-8l-8 4z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Domain / Website (The Exact Globe Icon from the screenshot!) */}
-          {(creator.links.domain || creator.links.website) && (
-            <SocialButton
-              href={creator.links.domain || creator.links.website || "#"}
-              label="Website / Domain"
-              colorClass="hover:bg-cyan-500/20 hover:border-cyan-500/60 hover:text-cyan-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current stroke-2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Facebook */}
-          {creator.links.facebook && (
-            <SocialButton
-              href={creator.links.facebook}
-              label="Facebook"
-              colorClass="hover:bg-blue-600/20 hover:border-blue-600/60 hover:text-blue-400 hover:shadow-[0_0_15px_rgba(24,119,242,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Instagram */}
-          {creator.links.instagram && (
-            <SocialButton
-              href={creator.links.instagram}
-              label="Instagram"
-              colorClass="hover:bg-pink-500/20 hover:border-pink-500/60 hover:text-pink-400 hover:shadow-[0_0_15px_rgba(236,72,153,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Discord */}
-          {creator.links.discord && (
-            <SocialButton
-              href={creator.links.discord}
-              label="Discord"
-              colorClass="hover:bg-indigo-500/20 hover:border-indigo-500/60 hover:text-indigo-400 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Kick */}
-          {creator.links.kick && (
-            <SocialButton
-              href={creator.links.kick}
-              label="Kick"
-              colorClass="hover:bg-emerald-500/20 hover:border-emerald-500/60 hover:text-emerald-400 hover:shadow-[0_0_15px_rgba(83,252,24,0.4)]"
-            >
-              <span className="text-[11px] font-black tracking-tight text-emerald-400">K</span>
-            </SocialButton>
-          )}
+          {/* Connected Socials */}
+          {activeLinks.map(({ platform, url, meta }) => {
+            return (
+              <SocialButton
+                key={platform}
+                href={url}
+                label={meta?.label || platform}
+                colorClass="hover:bg-white/15 hover:border-white/50 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]"
+              >
+                {meta ? (
+                  meta.icon("w-3.5 h-3.5 fill-current")
+                ) : (
+                  <ExternalLink className="w-3.5 h-3.5" />
+                )}
+              </SocialButton>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -977,6 +1094,7 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
 // ============================================================================
 // SLEEK SOCIAL BUTTON
 // ============================================================================
+
 interface SocialButtonProps {
   href: string;
   label: string;
