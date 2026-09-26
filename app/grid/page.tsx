@@ -20,7 +20,7 @@ export default function GridPage() {
   const { isMobile, dpr } = useDevicePerformance();
 
   // Live WebSocket Stats from VPS
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "wss://e-world-bot-production.up.railway.app";
   const { stats, isConnected } = useLiveStats(wsUrl);
 
   useEffect(() => {

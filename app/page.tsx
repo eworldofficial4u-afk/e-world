@@ -18,7 +18,7 @@ export default function EWorldHome() {
   const { isMobile, dpr } = useDevicePerformance();
 
   // Live WebSocket Stats from orchestrator
-  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "wss://e-world-bot-production.up.railway.app";
   const { stats, isConnected } = useLiveStats(wsUrl);
 
   const handleSelectWorld = (id: string | null) => {

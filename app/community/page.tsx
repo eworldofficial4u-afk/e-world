@@ -38,7 +38,7 @@ export default function CommunityPage() {
 
   const stage = useRef<HTMLDivElement>(null);
   const world = worlds[selected];
-  const { stats, isConnected } = useLiveStats(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080");
+  const { stats, isConnected } = useLiveStats(process.env.NEXT_PUBLIC_WS_URL || "wss://e-world-bot-production.up.railway.app");
   const count = selected === 0 ? stats.nexus.online : selected === 1 ? stats.block.players : stats.grid.players;
 
   return (
