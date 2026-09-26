@@ -85,10 +85,10 @@ export default function EWorldSMPPage() {
         </Canvas>
       </div>
 
-      {/* Dynamic Liquid Effect Animation Layer (Optimized for desktop / toggled on demand) */}
+      {/* Dynamic Liquid Effect Animation Layer (Subtle, sleek, non-intrusive) */}
       {liquidActive && !isMobile && (
-        <div className="fixed inset-0 pointer-events-none z-[1] opacity-75 mix-blend-screen transition-opacity duration-700">
-          <LiquidEffectAnimation />
+        <div className="fixed inset-0 pointer-events-none z-[1] opacity-25 mix-blend-screen transition-opacity duration-700">
+          <LiquidEffectAnimation displacementScale={0.4} roughness={0.25} metalness={0.05} />
         </div>
       )}
 

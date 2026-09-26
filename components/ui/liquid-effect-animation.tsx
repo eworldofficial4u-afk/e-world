@@ -8,14 +8,16 @@ interface LiquidEffectAnimationProps {
   metalness?: number
   roughness?: number
   displacementScale?: number
+  enableRain?: boolean
 }
 
 export function LiquidEffectAnimation({
   imageUrl = "",
   className = "",
-  metalness = 0.1,
-  roughness = 0.08,
-  displacementScale = 3.5,
+  metalness = 0.05,
+  roughness = 0.2,
+  displacementScale = 0.5,
+  enableRain = false,
 }: LiquidEffectAnimationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -40,14 +42,16 @@ export function LiquidEffectAnimation({
             app.liquidPlane.material.emissive.setHex(0x000000);
           }
           if (app.liquidPlane.material.envMapIntensity !== undefined) {
-            app.liquidPlane.material.envMapIntensity = 0.75;
+            app.liquidPlane.material.envMapIntensity = 0.25;
           }
         }
         if (app.liquidPlane && app.liquidPlane.uniforms && app.liquidPlane.uniforms.displacementScale) {
           app.liquidPlane.uniforms.displacementScale.value = ${displacementScale};
         }
-        app.setRain(true);
-        app.setRainTime(1.6);
+        app.setRain(${enableRain});
+        if (${enableRain}) {
+          app.setRainTime(6.0);
+        }
         window.__liquidApp = app;
       }
     `
@@ -61,7 +65,7 @@ export function LiquidEffectAnimation({
         document.body.removeChild(script)
       }
     }
-  }, [imageUrl, metalness, roughness, displacementScale])
+  }, [imageUrl, metalness, roughness, displacementScale, enableRain])
 
   return (
     <div
