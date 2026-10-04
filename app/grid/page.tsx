@@ -17,7 +17,7 @@ import { useDevicePerformance } from "../../hooks/useDevicePerformance";
 export default function GridPage() {
   const [mounted, setMounted] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const { isMobile, dpr } = useDevicePerformance();
+  const { isMobile, dpr, isPageVisible, enablePostProcessing } = useDevicePerformance();
 
   // Live WebSocket Stats from VPS
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "wss://e-world-bot-production.up.railway.app";
@@ -48,6 +48,7 @@ export default function GridPage() {
       <div className="fixed inset-0 pointer-events-none z-0">
         <Canvas
           dpr={dpr}
+          frameloop={isPageVisible ? "always" : "never"}
           camera={{ position: [0, 18, 22], fov: 45 }}
           gl={{
             antialias: !isMobile,
@@ -70,7 +71,7 @@ export default function GridPage() {
           <WireframeCityscape scrollProgress={scrollProgress} />
 
           {/* Cinematic Post-Processing Pipeline */}
-          <CinematicEffects />
+          {enablePostProcessing && <CinematicEffects />}
         </Canvas>
       </div>
 

@@ -16,13 +16,17 @@ const AnoAI: React.FC<AnimatedShaderBackgroundProps> = ({ className = "" }) => {
 
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      alpha: true,
+      powerPreference: "high-performance",
+    });
     
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
     
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.inset = "0";
     renderer.domElement.style.width = "100%";
@@ -108,18 +112,24 @@ const AnoAI: React.FC<AnimatedShaderBackgroundProps> = ({ className = "" }) => {
     scene.add(mesh);
 
     let frameId: number;
-    const animate = () => {
-      material.uniforms.iTime.value += 0.016;
-      renderer.render(scene, camera);
+    let previousTime = performance.now();
+    const animate = (now: number) => {
+      if (!document.hidden) {
+        const delta = Math.min((now - previousTime) / 1000, 0.05);
+        material.uniforms.iTime.value += delta;
+        renderer.render(scene, camera);
+      }
+      previousTime = now;
       frameId = requestAnimationFrame(animate);
     };
-    animate();
+    frameId = requestAnimationFrame(animate);
 
     const handleResize = () => {
       if (!container) return;
       const newWidth = container.clientWidth || window.innerWidth;
       const newHeight = container.clientHeight || window.innerHeight;
       renderer.setSize(newWidth, newHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
       material.uniforms.iResolution.value.set(newWidth, newHeight);
     };
     window.addEventListener("resize", handleResize);

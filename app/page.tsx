@@ -15,7 +15,13 @@ export default function EWorldHome() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [activeWorld, setActiveWorld] = useState<string | null>(null);
-  const { isMobile, dpr } = useDevicePerformance();
+  const {
+    isMobile,
+    dpr,
+    isPageVisible,
+    enablePostProcessing,
+    enableShaderBackground,
+  } = useDevicePerformance();
 
   // Live WebSocket Stats from orchestrator
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "wss://e-world-bot-production.up.railway.app";
@@ -57,7 +63,7 @@ export default function EWorldHome() {
       </div>
 
       {/* Addon: Dynamic Cosmic Aurora Shader Background */}
-      {mounted && !isMobile && (
+      {mounted && enableShaderBackground && (
         <div className="absolute inset-0 pointer-events-none z-[2] opacity-30 mix-blend-screen overflow-hidden">
           <AnoAI />
         </div>
@@ -74,6 +80,7 @@ export default function EWorldHome() {
         {mounted && (
           <Canvas
             dpr={dpr}
+            frameloop={isPageVisible ? "always" : "never"}
             camera={{ position: [0, 0.5, 14.5], fov: 46 }}
             gl={{
               antialias: !isMobile,
@@ -97,15 +104,16 @@ export default function EWorldHome() {
             </Suspense>
 
             {/* Soft Bloom for Glowing Rings & Neon Auras */}
-            {/* @ts-ignore */}
-            <EffectComposer disableNormalPass multisampling={0}>
-              <Bloom
-                intensity={0.8}
-                luminanceThreshold={0.85}
-                luminanceSmoothing={0.7}
-                mipmapBlur={true}
-              />
-            </EffectComposer>
+            {enablePostProcessing && (
+              <EffectComposer enableNormalPass={false} multisampling={0}>
+                <Bloom
+                  intensity={0.8}
+                  luminanceThreshold={0.85}
+                  luminanceSmoothing={0.7}
+                  mipmapBlur
+                />
+              </EffectComposer>
+            )}
           </Canvas>
         )}
       </div>

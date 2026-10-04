@@ -22,14 +22,7 @@ export default function EWorldSMPPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [liquidActive, setLiquidActive] = useState(true);
   const [blockType, setBlockType] = useState<"grass_carried" | "dirt">("grass_carried");
-  const { isMobile, dpr } = useDevicePerformance();
-
-  // On mobile devices, disable liquid fluid simulation by default to protect GPU and battery
-  useEffect(() => {
-    if (isMobile) {
-      setLiquidActive(false);
-    }
-  }, [isMobile]);
+  const { isMobile, isLowPower, dpr, isPageVisible, enablePostProcessing } = useDevicePerformance();
 
   // Live WebSocket Stats
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "wss://e-world-bot-production.up.railway.app";
@@ -60,6 +53,7 @@ export default function EWorldSMPPage() {
       <div className="fixed inset-0 pointer-events-none z-0">
         <Canvas
           dpr={dpr}
+          frameloop={isPageVisible ? "always" : "never"}
           camera={{ position: [0, 0, 11], fov: 45 }}
           gl={{
             antialias: !isMobile,
@@ -81,12 +75,12 @@ export default function EWorldSMPPage() {
           <VoxelChunk scrollProgress={scrollProgress} blockType={blockType} />
 
           {/* Post-Processing Pipeline */}
-          <CinematicEffects />
+          {enablePostProcessing && <CinematicEffects />}
         </Canvas>
       </div>
 
       {/* Dynamic Liquid Effect Animation Layer (Subtle, sleek, non-intrusive) */}
-      {liquidActive && !isMobile && (
+      {liquidActive && !isLowPower && (
         <div className="fixed inset-0 pointer-events-none z-[1] opacity-25 mix-blend-screen transition-opacity duration-700">
           <LiquidEffectAnimation displacementScale={0.4} roughness={0.25} metalness={0.05} />
         </div>
