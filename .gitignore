@@ -2,6 +2,8 @@
 .admin-access.txt
 .env
 .env.*
+bot/.env
+bot/.env.*
 !.env.example
 .dev.vars
 .dev.vars.*
