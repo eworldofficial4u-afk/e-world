@@ -106,15 +106,15 @@ export default function LiveTelemetryTicker({ stats }: LiveTelemetryTickerProps)
                     MINECRAFT SMP REALM
                   </span>
                   <span className="text-[10px] text-white/50">
-                    HOST: mc.eworld.net | BLUEMAP: LIVE
+                    HOST: {stats.block?.ip || "151.243.226.61:25565"} | {stats.block?.version || "PURPUR 1.21.11"}
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-white">
-                    {stats.block?.players ?? 42} / {stats.block?.max ?? 100}
+                    {stats.block?.players ?? 0} / {stats.block?.max ?? 100}
                   </span>
-                  <span className="text-[9px] text-emerald-400 block">
-                    ONLINE
+                  <span className={`text-[9px] block ${stats.block?.status === "OFFLINE" ? "text-red-400" : "text-emerald-400"}`}>
+                    {stats.block?.status || "ONLINE"}
                   </span>
                 </div>
               </div>

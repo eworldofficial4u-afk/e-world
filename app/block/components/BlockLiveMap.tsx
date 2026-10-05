@@ -1,10 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 export default function BlockLiveMap() {
+  const { siteConfig } = useSiteConfig();
   const [activeDimension, setActiveDimension] = useState<"overworld" | "nether" | "end">("overworld");
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [useIframe, setUseIframe] = useState(true);
+
+  const rawMapUrl = siteConfig.realms?.smp?.externalMapUrl?.trim() || "";
+  const serverIp = siteConfig.realms?.smp?.serverIp || "151.243.226.61:25565";
 
   return (
     <section id="map" className="relative min-h-[100dvh] py-16 sm:py-24 px-4 sm:px-8 md:px-16 z-10 font-mono">
@@ -54,10 +60,19 @@ export default function BlockLiveMap() {
                 ORBITAL SCANNER: ONLINE
               </span>
               <span className="text-white/20">|</span>
-              <span>GRID: [X: 0, Z: 0]</span>
+              <span>HOST: {serverIp}</span>
             </div>
 
             <div className="flex items-center gap-3">
+              {rawMapUrl && (
+                <button
+                  onClick={() => setUseIframe(!useIframe)}
+                  className="px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded border border-emerald-400/40 text-[10px] cursor-pointer"
+                >
+                  {useIframe ? "RADAR VIEW" : "LIVE MAP VIEW"}
+                </button>
+              )}
+
               <button
                 onClick={() => setZoomLevel((z) => Math.min(2, z + 0.25))}
                 className="px-2 py-0.5 bg-white/10 hover:bg-white/20 text-white rounded border border-white/20 cursor-pointer"
@@ -74,37 +89,49 @@ export default function BlockLiveMap() {
             </div>
           </div>
 
-          {/* Interactive Stylized Simulated Map Viewport */}
-          <div 
-            className="w-full h-full flex items-center justify-center transition-transform duration-300 relative bg-[#060b09]"
-            style={{ transform: `scale(${zoomLevel})` }}
-          >
-            {/* Topographic radar grid background */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#092317_1px,transparent_1px),linear-gradient(to_bottom,#092317_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
+          {/* Interactive Live Web Map or Simulated Radar Viewport */}
+          {rawMapUrl && useIframe ? (
+            <div className="w-full h-full pt-10">
+              <iframe
+                src={rawMapUrl}
+                title="Minecraft Live World Map"
+                className="w-full h-full border-0 pointer-events-auto"
+                sandbox="allow-scripts allow-same-origin allow-popups"
+              />
+            </div>
+          ) : (
+            <div
+              className="w-full h-full flex items-center justify-center transition-transform duration-300 relative bg-[#060b09]"
+              style={{ transform: `scale(${zoomLevel})` }}
+            >
+              {/* Topographic radar grid background */}
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#092317_1px,transparent_1px),linear-gradient(to_bottom,#092317_1px,transparent_1px)] bg-[size:32px_32px] opacity-40" />
 
-            {/* Simulated biome map radar */}
-            <div className="relative z-10 flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-md">
-              <div className="w-28 h-28 rounded-full border border-emerald-500/40 flex items-center justify-center relative shadow-[0_0_30px_rgba(0,255,170,0.2)]">
-                <div className="w-16 h-16 rounded-full border border-emerald-400/60 animate-ping" />
-                <div className="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#00ffaa]" />
-                <div className="absolute top-1 text-[8px] text-emerald-400">SPAWN [0,0]</div>
-              </div>
+              {/* Simulated biome map radar */}
+              <div className="relative z-10 flex flex-col items-center justify-center p-8 text-center space-y-4 max-w-md">
+                <div className="w-28 h-28 rounded-full border border-emerald-500/40 flex items-center justify-center relative shadow-[0_0_30px_rgba(0,255,170,0.2)]">
+                  <div className="w-16 h-16 rounded-full border border-emerald-400/60 animate-ping" />
+                  <div className="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#00ffaa]" />
+                  <div className="absolute top-1 text-[8px] text-emerald-400">SPAWN [0,0]</div>
+                </div>
 
-              <div className="space-y-1">
-                <p className="text-xs text-white/80 font-bold tracking-widest uppercase">
-                  ACTIVE REALM: {activeDimension}
-                </p>
-                <p className="text-[11px] text-white/50 leading-relaxed">
-                  Connect your live Dynmap / BlueMap port in configuration to stream 60FPS
-                  topographic voxel tiles directly to this viewport.
-                </p>
-              </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-white/80 font-bold tracking-widest uppercase">
+                    ACTIVE REALM: {activeDimension}
+                  </p>
+                  <p className="text-[11px] text-white/50 leading-relaxed">
+                    Live telemetry link established with <span className="text-emerald-400">{serverIp}</span>.
+                    Install Dynmap, BlueMap, or Pl3xMap on your Purpur server to stream real-time 3D voxel tiles here.
+                  </p>
+                </div>
 
-              <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded text-[11px] text-emerald-300">
-                RADAR SECTORS TRACKED: 42 CLUSTERS
+                <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded text-[11px] text-emerald-300 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>SECTORS SYNCED // PURPUR 1.21.11</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* CRT scanlines and vignette over the map */}
           <div className="absolute inset-0 pointer-events-none scanlines opacity-50 z-30" />

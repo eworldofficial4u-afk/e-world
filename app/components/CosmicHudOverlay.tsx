@@ -42,7 +42,7 @@ export default function CosmicHudOverlay({
       {/* 1. TOP NAVIGATION BAR */}
       {/* ========================================================================= */}
       <nav
-        className="absolute top-0 left-0 right-0 px-4 sm:px-6 md:px-12 py-4 sm:py-6 flex items-center justify-between pointer-events-auto z-50"
+        className="cosmic-nav absolute top-0 left-0 right-0 px-4 sm:px-6 md:px-12 py-4 sm:py-6 flex items-center justify-between pointer-events-auto z-50"
         style={{
           paddingTop: "max(1rem, env(safe-area-inset-top))",
           paddingLeft: "max(1rem, env(safe-area-inset-left))",
@@ -64,7 +64,7 @@ export default function CosmicHudOverlay({
           </Link>
 
           {/* Slashes / World Tags */}
-          <div className="hidden lg:flex items-center gap-3 pl-4 border-l border-white/10 font-mono text-[10px] tracking-[0.2em] text-white/50 uppercase">
+          <div className="hidden xl:flex items-center gap-3 pl-4 border-l border-white/10 font-mono text-[10px] tracking-[0.2em] text-white/50 uppercase">
             <Link
               href="/community"
               className="hover:text-amber-400 cursor-pointer transition-colors"
@@ -273,21 +273,21 @@ export default function CosmicHudOverlay({
       {/* ========================================================================= */}
       {/* 2. CENTER HERO TITLE & ELECTRIC NEON BRANDING */}
       {/* ========================================================================= */}
-      <div className="absolute bottom-[max(5vh,35px)] sm:bottom-[7vh] md:bottom-[9vh] left-1/2 -translate-x-1/2 flex flex-col items-center text-center pointer-events-auto z-20 w-full max-w-4xl px-4">
+      <div className="cosmic-hero absolute bottom-[max(5vh,35px)] sm:bottom-[7vh] md:bottom-[9vh] left-1/2 -translate-x-1/2 flex flex-col items-center text-center pointer-events-auto z-20 w-full max-w-4xl px-4">
         {/* Top Kicker */}
-        <div className="text-cyan-300/80 font-mono text-[9px] sm:text-[11px] md:text-xs tracking-[0.35em] uppercase mb-2 sm:mb-3 flex items-center justify-center gap-2 sm:gap-3">
+        <div className="cosmic-kicker text-cyan-300/80 font-mono text-[9px] sm:text-[11px] md:text-xs tracking-[0.35em] uppercase mb-2 sm:mb-3 flex items-center justify-center gap-2 sm:gap-3">
           <span className="w-5 sm:w-8 h-[1px] bg-gradient-to-r from-transparent to-cyan-400" />
           <span>THREE WORLDS // ONE UNIVERSE</span>
           <span className="w-5 sm:w-8 h-[1px] bg-gradient-to-l from-transparent to-cyan-400" />
         </div>
 
         {/* Luminous Electric Cyber-Neon E-WORLD Logo with Deep Ambient Shadow */}
-        <h1 className="neon-eworld text-[clamp(2.8rem,9.5vw,7.2rem)] font-black tracking-[0.14em] sm:tracking-[0.18em] uppercase leading-none select-none font-display">
+        <h1 className="cosmic-title neon-eworld text-[clamp(2.8rem,9.5vw,7.2rem)] font-black tracking-[0.14em] sm:tracking-[0.18em] uppercase leading-none select-none font-display">
           E-WORLD
         </h1>
 
         {/* Balanced Minimalist Tagline */}
-        <div className="text-white/80 font-mono text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.45em] uppercase font-medium mt-3 sm:mt-4 mb-5 sm:mb-6 flex items-center gap-3 sm:gap-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+        <div className="cosmic-tagline text-white/80 font-mono text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.45em] uppercase font-medium mt-3 sm:mt-4 mb-5 sm:mb-6 flex items-center gap-3 sm:gap-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
           <span>EXPLORE</span>
           <span className="text-cyan-400/80">·</span>
           <span>PLAY</span>
@@ -299,7 +299,7 @@ export default function CosmicHudOverlay({
         <Link href="/smp" data-interactive="true">
           <InteractiveHoverButton
             text="ENTER THE UNIVERSE"
-            className="min-w-56 px-8 py-3.5 text-xs sm:text-sm tracking-[0.22em] uppercase font-mono font-bold shadow-[0_0_30px_rgba(56,189,248,0.35)] hover:shadow-[0_0_50px_rgba(56,189,248,0.7)] border-cyan-400/40"
+            className="cosmic-enter min-w-56 px-8 py-3.5 text-xs sm:text-sm tracking-[0.22em] uppercase font-mono font-bold shadow-[0_0_30px_rgba(56,189,248,0.35)] hover:shadow-[0_0_50px_rgba(56,189,248,0.7)] border-cyan-400/40"
           />
         </Link>
       </div>

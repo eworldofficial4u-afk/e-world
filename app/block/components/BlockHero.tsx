@@ -38,7 +38,7 @@ export default function BlockHero({
             <span className="tracking-widest text-[10px] sm:text-xs">SECTOR 02 // E-WORLD SMP</span>
           </div>
           <span className="text-[9px] sm:text-[10px] font-mono text-white/30 tracking-widest">
-            MINECRAFT VOXEL MATRIX // GRASS_CARRIED 1.21.4
+            MINECRAFT VOXEL MATRIX // PURPUR 1.21.11 // CROSSPLAY
           </span>
         </div>
 
@@ -58,10 +58,12 @@ export default function BlockHero({
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="space-y-4"
         >
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-white/5 border border-white/10 rounded font-mono text-[10px] sm:text-[11px] text-emerald-400/90 tracking-widest">
-            <span>[ SYSTEM ACTIVE ]</span>
+          <div className="inline-flex flex-wrap items-center gap-2 px-2.5 py-1 bg-white/5 border border-white/10 rounded font-mono text-[10px] sm:text-[11px] text-emerald-400/90 tracking-widest">
+            <span>[ SYSTEM ONLINE ]</span>
             <span className="text-white/20">/</span>
-            <span>{onlinePlayers} SURVIVORS ONLINE</span>
+            <span>{onlinePlayers} / {maxPlayers} SURVIVORS ONLINE</span>
+            <span className="text-white/20">/</span>
+            <span className="text-cyan-300">JAVA • BEDROCK • TLAUNCHER • SKLAUNCHER</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter uppercase text-white drop-shadow-[0_0_30px_rgba(0,255,170,0.25)]">

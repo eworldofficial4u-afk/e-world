@@ -38,7 +38,7 @@ export default function EWorldHome() {
   }, []);
 
   return (
-    <main className="relative w-full min-h-dvh h-dvh bg-black overflow-hidden select-none">
+    <main className="cosmic-home relative w-full min-h-dvh h-dvh bg-black overflow-hidden select-none">
 
       {/* ========================================================================= */}
       {/* 1. PHOTOREALISTIC EARTH SPACE HORIZON & SUNRISE BACKDROP */}
@@ -74,7 +74,7 @@ export default function EWorldHome() {
         {mounted && (
           <Canvas
             dpr={dpr}
-            camera={{ position: [0, 0.5, 14.5], fov: 46 }}
+            camera={{ position: [0, 0, 14.5], fov: 46 }}
             gl={{
               antialias: !isMobile,
               alpha: true,

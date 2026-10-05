@@ -82,7 +82,16 @@ function GlobeTypographyPlate({
   return (
     <div
       onClick={onClick}
-      className={`group flex flex-col items-center select-none pointer-events-auto transition-all duration-300 ${
+      role="button"
+      tabIndex={0}
+      aria-label={`${name} ${subName || number}${isLocked ? ' — coming soon' : ''}`}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick(event);
+        }
+      }}
+      className={`world-plate group flex flex-col items-center select-none pointer-events-auto transition-all duration-300 ${
         isLocked ? "cursor-not-allowed" : "cursor-pointer"
       } ${
         isActive ? "scale-105" : "hover:scale-105 opacity-95 hover:opacity-100"
@@ -203,9 +212,9 @@ function TerrariumImageOrb({
     }
 
     if (meshRef.current) {
-      const offset = id === "smp" ? 1.0 : id === "community" ? 0.0 : id === "rp" ? 2.0 : id === "arena" ? 0.5 : 2.5;
+      const offset = id === "smp" ? 1 : isLocked ? 0.5 : 0;
       meshRef.current.position.y =
-        position[1] + Math.sin(state.clock.elapsedTime * 0.9 + offset) * 0.15;
+        position[1] + Math.sin(state.clock.elapsedTime * 0.9 + offset) * size * 0.035;
     }
 
     if (coreRef.current) {
@@ -337,8 +346,8 @@ function TerrariumImageOrb({
 
       {/* 3D Floating Holographic Padlock Badge in Center of Locked Orb */}
       {isLocked && (
-        <Html position={[0, 0, size * 0.75]} center pointerEvents="none" zIndexRange={[60, 0]}>
-          <div className="flex flex-col items-center select-none pointer-events-none">
+        <Html position={[0, 0, 0]} center pointerEvents="none" zIndexRange={[60, 0]}>
+          <div className="world-lock flex flex-col items-center select-none pointer-events-none">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/80 backdrop-blur-md border border-red-500/50 flex items-center justify-center text-red-400 text-xs sm:text-sm shadow-[0_0_20px_rgba(239,68,68,0.45)] animate-pulse">
               🔒
             </div>
@@ -480,9 +489,9 @@ function TerrariumVideoOrb({
     }
 
     if (meshRef.current) {
-      const offset = id === "smp" ? 1.0 : id === "community" ? 0.0 : 2.0;
+      const offset = id === "smp" ? 1 : 0;
       meshRef.current.position.y =
-        position[1] + Math.sin(state.clock.elapsedTime * 0.9 + offset) * 0.15;
+        position[1] + Math.sin(state.clock.elapsedTime * 0.9 + offset) * size * 0.035;
     }
 
     if (coreRef.current) {
@@ -689,48 +698,38 @@ export default function CosmicTriadScene({
   onSelectWorld,
 }: CosmicTriadSceneProps) {
   const { viewport } = useThree();
-  const aspect = viewport.aspect;
-
-  // Responsive device aspect layout
-  const isMobilePortrait = aspect < 0.85;
-  const isTablet = aspect >= 0.85 && aspect < 1.35;
-
+  // Anchor the composition in viewport fractions so resize/zoom cannot push
+  // worlds off-screen. All billboards share a depth to keep paired orbs aligned.
   const config = useMemo(() => {
-    if (isMobilePortrait) {
+    const point = (x: number, y: number): [number, number, number] => [
+      (x - 0.5) * viewport.width,
+      (0.5 - y) * viewport.height,
+      0,
+    ];
+    if (viewport.aspect < 1) {
       return {
-        scale: 0.62,
-        yOffset: 0.2,
-        locked1Pos: [-1.4, 4.4, -1.0] as [number, number, number],
-        smpPos: [0.0, 2.2, 0.0] as [number, number, number],
-        locked2Pos: [1.4, 0.4, -0.8] as [number, number, number],
-        communityPos: [-1.3, -1.5, 0.2] as [number, number, number],
-        rpPos: [1.3, -3.4, 0.2] as [number, number, number],
-      };
-    } else if (isTablet) {
-      return {
-        scale: 0.85,
-        yOffset: 0.5,
-        locked1Pos: [-6.8, 1.6, -1.0] as [number, number, number],
-        communityPos: [-3.4, -0.35, 0.35] as [number, number, number],
-        smpPos: [0.0, 2.2, -0.25] as [number, number, number],
-        rpPos: [3.4, -0.35, 0.35] as [number, number, number],
-        locked2Pos: [6.8, 1.6, -1.0] as [number, number, number],
-      };
-    } else {
-      return {
-        scale: 1.0,
-        yOffset: 0.4,
-        locked1Pos: [-8.8, 1.85, -1.1] as [number, number, number],
-        communityPos: [-4.4, -0.45, 0.4] as [number, number, number],
-        smpPos: [0.0, 2.35, -0.3] as [number, number, number],
-        rpPos: [4.4, -0.45, 0.4] as [number, number, number],
-        locked2Pos: [8.8, 1.85, -1.1] as [number, number, number],
+        scale: Math.min(viewport.width / 13, viewport.height / 20),
+        lockedScale: 0.65,
+        locked1Pos: point(0.16, 0.20),
+        smpPos: point(0.50, 0.29),
+        locked2Pos: point(0.84, 0.20),
+        communityPos: point(0.25, 0.53),
+        rpPos: point(0.75, 0.53),
       };
     }
-  }, [isMobilePortrait, isTablet]);
+    return {
+      scale: Math.min(viewport.width / 22, viewport.height / 12.6),
+      lockedScale: 1,
+      locked1Pos: point(0.12, 0.32),
+      communityPos: point(0.275, 0.49),
+      smpPos: point(0.50, 0.275),
+      rpPos: point(0.725, 0.49),
+      locked2Pos: point(0.88, 0.32),
+    };
+  }, [viewport.width, viewport.height, viewport.aspect]);
 
   return (
-    <group position={[0, config.yOffset, 0]}>
+    <group>
       {/* Subtle Zig-Zag Constellation Trajectory Spline connecting the 5 Orbs */}
       <ZigZagTrajectories
         p0={config.locked1Pos}
@@ -750,7 +749,7 @@ export default function CosmicTriadScene({
         position={config.locked1Pos}
         color="#ef4444"
         accentHex="#f43f5e"
-        size={1.9 * config.scale}
+        size={1.9 * config.scale * config.lockedScale}
         ringTilt={[0.4, -0.2, 0.5]}
         isActive={activeWorld === "arena"}
         onSelect={() => onSelectWorld("arena")}
@@ -821,7 +820,7 @@ export default function CosmicTriadScene({
         position={config.locked2Pos}
         color="#a855f7"
         accentHex="#a855f7"
-        size={1.9 * config.scale}
+        size={1.9 * config.scale * config.lockedScale}
         ringTilt={[-0.3, 0.4, -0.4]}
         isActive={activeWorld === "labs"}
         onSelect={() => onSelectWorld("labs")}

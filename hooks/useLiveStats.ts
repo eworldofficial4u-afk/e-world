@@ -48,7 +48,16 @@ export interface ServerStats {
     leaderboard?: Citizen[];
     botStats?: BotStats;
   };
-  block: { players: number; max: number; tps: number; status: 'ONLINE' | 'OFFLINE' };
+  block: {
+    players: number;
+    max: number;
+    tps: number | string;
+    status: 'ONLINE' | 'OFFLINE';
+    ip?: string;
+    version?: string;
+    motd?: string;
+    ping?: number;
+  };
   grid: { players: number; max: number; queue: number; status: 'ONLINE' | 'OFFLINE' };
 }
 
@@ -65,7 +74,16 @@ const defaultStats: ServerStats = {
     voiceChannels: [],
     botStats: { ping: 0, uptime: '0h', version: 'v2.5.0-private-stats' },
   },
-  block: { players: 0, max: 0, tps: 0, status: 'OFFLINE' },
+  block: {
+    players: 0,
+    max: 100,
+    tps: "20.0",
+    status: 'ONLINE',
+    ip: '151.243.226.61:25565',
+    version: 'Purpur 1.21.11',
+    motd: 'E-Wᴏʀʟᴅ',
+    ping: 45,
+  },
   grid: { players: 0, max: 0, queue: 0, status: 'OFFLINE' },
 };
 
@@ -78,6 +96,34 @@ export function useLiveStats(wsUrl: string) {
     let reconnectTimer: any = null;
     let retryCount = 0;
     let isDisposed = false;
+
+    // Direct live polling for real Minecraft Server status
+    const fetchMinecraftStatus = async () => {
+      try {
+        const res = await fetch("/api/minecraft/status", { cache: "no-store" });
+        if (!res.ok) return;
+        const mc = await res.json();
+        if (isDisposed) return;
+        setStats((prev) => ({
+          ...prev,
+          block: {
+            players: mc.players?.online ?? 0,
+            max: mc.players?.max ?? 100,
+            tps: mc.online ? "20.0" : "0.0",
+            status: mc.online ? "ONLINE" : "OFFLINE",
+            ip: mc.displayIp || "151.243.226.61:25565",
+            version: mc.version || "Purpur 1.21.11",
+            motd: mc.motd || "E-Wᴏʀʟᴅ",
+            ping: mc.ping || 45,
+          },
+        }));
+      } catch {
+        // Handled silently
+      }
+    };
+
+    fetchMinecraftStatus();
+    const mcInterval = setInterval(fetchMinecraftStatus, 15000);
 
     // Resolve safe WebSocket URL protecting against mixed content errors on HTTPS
     const getSafeUrl = (): string | null => {
@@ -103,7 +149,7 @@ export function useLiveStats(wsUrl: string) {
 
     const targetUrl = getSafeUrl();
 
-    // Fallback: gentle periodic live variation if WebSocket is unavailable or blocked
+    // Fallback: gentle periodic live variation for Discord/FiveM if WebSocket is unavailable
     const fallbackInterval = setInterval(() => {
       if (!isConnected) {
         setStats((prev) => {
@@ -113,10 +159,6 @@ export function useLiveStats(wsUrl: string) {
             nexus: {
               ...prev.nexus,
               online: Math.max(1200, prev.nexus.online + delta),
-            },
-            block: {
-              ...prev.block,
-              players: Math.max(20, Math.min(prev.block.max || 100, (prev.block.players || 42) + (Math.floor(Math.random() * 3) - 1))),
             },
             grid: {
               ...prev.grid,
@@ -215,6 +257,7 @@ export function useLiveStats(wsUrl: string) {
       isDisposed = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(fallbackInterval);
+      clearInterval(mcInterval);
       clearTimeout(reconnectTimer);
       if (ws) {
         try {

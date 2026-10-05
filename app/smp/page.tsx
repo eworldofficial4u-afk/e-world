@@ -171,7 +171,7 @@ export default function EWorldSMPPage() {
       <div className="relative z-10">
         {/* Section 1: The Drop (Hero) */}
         <BlockHero
-          onlinePlayers={stats.block?.players ?? 42}
+          onlinePlayers={stats.block?.players ?? 0}
           maxPlayers={stats.block?.max ?? 100}
           serverTps={stats.block?.tps ?? "20.0"}
         />
@@ -192,7 +192,11 @@ export default function EWorldSMPPage() {
       {/* Interactive SMP Dashboard Widget */}
       <BlockDashboardWidget
         tps={stats.block?.tps ?? "20.0"}
-        online={stats.block?.players ?? 42}
+        online={stats.block?.players ?? 0}
+        max={stats.block?.max ?? 100}
+        ping={stats.block?.ping ?? 45}
+        version={stats.block?.version ?? "Purpur 1.21.11"}
+        ip={stats.block?.ip ?? "151.243.226.61:25565"}
       />
 
       {/* Technical Scanlines and Vignette Overlays */}

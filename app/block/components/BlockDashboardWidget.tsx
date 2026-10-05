@@ -5,19 +5,27 @@ import React, { useState } from "react";
 interface BlockDashboardWidgetProps {
   tps?: string | number;
   online?: number;
+  max?: number;
+  ping?: number;
+  version?: string;
+  ip?: string;
 }
 
 export default function BlockDashboardWidget({
   tps = "20.0",
-  online = 42,
+  online = 0,
+  max = 100,
+  ping = 45,
+  version = "Purpur 1.21.11",
+  ip = "151.243.226.61:25565",
 }: BlockDashboardWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"metrics" | "console">("metrics");
   const [consoleInput, setConsoleInput] = useState("");
   const [logs, setLogs] = useState<string[]>([
-    "[13:30:00] [Server thread/INFO]: Chunk load complete: 14,280 entities active",
-    "[13:30:04] [Server thread/INFO]: Tick time: 49.8ms // Stable 20.0 TPS",
-    "[13:30:08] [Server thread/INFO]: Player Suyash claimed bounty in sector [X: 420, Z: -980]",
+    `[SYS/BOOT] Connected to Minecraft Server: ${ip}`,
+    `[SYS/INFO] Engine: ${version} // Port 25565`,
+    "[SYS/AUTH] Crossplay active: Java, Bedrock, TLauncher, SKLauncher",
   ]);
 
   const handleCommand = (e: React.FormEvent) => {
@@ -86,20 +94,24 @@ export default function BlockDashboardWidget({
           {activeTab === "metrics" ? (
             <div className="space-y-2 text-[11px] text-white/70">
               <div className="flex justify-between items-center py-1 border-b border-white/5">
+                <span className="text-white/40">SERVER IP:</span>
+                <span className="text-emerald-400 font-bold font-mono">{ip}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-white/5">
+                <span className="text-white/40">ENGINE / VERSION:</span>
+                <span className="text-cyan-400 font-semibold">{version}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-white/5">
+                <span className="text-white/40">ACTIVE SURVIVORS:</span>
+                <span className="text-white font-semibold">{online} / {max} Online</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-white/5">
                 <span className="text-white/40">CLUSTER TICKS:</span>
                 <span className="text-emerald-400 font-bold">{tps} / 20.0 TPS</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-white/5">
-                <span className="text-white/40">ACTIVE SURVIVORS:</span>
-                <span className="text-white font-semibold">{online} Players</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-white/5">
-                <span className="text-white/40">HEAP ALLOCATION:</span>
-                <span className="text-cyan-400">7.2 GB / 16.0 GB (45%)</span>
-              </div>
-              <div className="flex justify-between items-center py-1 border-b border-white/5">
-                <span className="text-white/40">NETWORK RTT:</span>
-                <span className="text-white">16ms (Direct Fiber)</span>
+                <span className="text-white/40">LATENCY / PING:</span>
+                <span className="text-white">{ping}ms</span>
               </div>
 
               <div className="pt-2">

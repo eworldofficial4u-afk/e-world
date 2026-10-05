@@ -2,6 +2,26 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Homepage alignment
+
+The homepage keeps SMP at the top centre, Community and FiveM as a mirrored
+lower pair, and the two locked worlds at the outer edges. In
+`app/components/CosmicTriadScene.tsx`, positions are fractions of the viewport
+and orb sizes are limited by both its width and height. Portrait viewports
+use a compact arrangement. Keep the camera centred on `[0, 0, 14.5]` so these
+anchors match the screen coordinates.
+
+Homepage-only typography and spacing live under `.cosmic-home` in
+`app/globals.css`; the hero markup is in `app/components/CosmicHudOverlay.tsx`.
+Check wide desktop, laptop, portrait and short landscape layouts when changing
+these values. Verify that all five labels remain visible and clear of the hero
+text, and that paired worlds remain aligned throughout their floating motion.
+
+For an isolated local preview, set `NEXT_PUBLIC_API_URL` and
+`NEXT_PUBLIC_WS_URL` to local test services before building. The default URLs
+connect to the live backend. Publishing to the connected GitHub `main` branch
+triggers Hostinger auto-deployment; local editing/building does not publish.
+
 First, run the development server:
 
 ```bash

@@ -120,10 +120,11 @@ export const defaultSiteConfig: SiteConfig = {
       tagline: "CUSTOM SHADERS • EXPEDITION REALM",
       status: "ONLINE",
       accessInfo: "Verified Citizens on Discord",
-      serverIp: "play.eworld.net",
-      version: "Java 1.21.4",
+      serverIp: "151.243.226.61:25565",
+      version: "Purpur 1.21.11",
       maxPlayers: 100,
       features: [
+        "Crossplay: Java, Bedrock, TLauncher & SKLauncher",
         "Custom Terrain & Atmospheric Shaders",
         "Player-Driven Dynamic Economy",
         "Dungeon Raid Megastructures",
@@ -134,7 +135,7 @@ export const defaultSiteConfig: SiteConfig = {
         "Automated duping and malicious hacks strictly prohibited",
         "Respect community trade corridors and builds",
       ],
-      externalMapUrl: "https://map.eworld.net",
+      externalMapUrl: "",
     },
     rp: {
       id: "rp",
