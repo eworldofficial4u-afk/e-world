@@ -276,23 +276,27 @@ const PLATFORM_REGISTRY: Record<string, PlatformMeta> = {
 
 function CreatorAvatar({
   avatarUrl,
+  avatarDecorationUrl,
   name,
   initials,
   gradient,
   glow,
 }: {
   avatarUrl?: string;
+  avatarDecorationUrl?: string;
   name: string;
   initials: string;
   gradient?: string;
   glow?: string;
 }) {
   const [imgError, setImgError] = useState(false);
+  const [decorationError, setDecorationError] = useState(false);
   const effectiveGradient =
     gradient || "linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)";
   const effectiveGlow = glow || "rgba(245, 158, 11, 0.45)";
 
   const hasValidUrl = Boolean(avatarUrl && avatarUrl.trim().length > 0 && !imgError);
+  const hasDecoration = Boolean(avatarDecorationUrl && !decorationError);
 
   return (
     <div className="relative shrink-0">
@@ -322,8 +326,22 @@ function CreatorAvatar({
           {initials || name.slice(0, 3).toUpperCase()}
         </div>
       )}
+      {/* Discord Avatar Decoration Overlay */}
+      {hasDecoration && (
+        <div className="absolute -top-2 -left-2 -right-2 -bottom-2 pointer-events-none z-10">
+          <Image
+            src={avatarDecorationUrl!}
+            alt="Avatar decoration"
+            width={72}
+            height={72}
+            className="w-full h-full object-contain"
+            onError={() => setDecorationError(true)}
+            unoptimized
+          />
+        </div>
+      )}
       {/* Live/Verified Indicator Dot */}
-      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-black flex items-center justify-center">
+      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-black flex items-center justify-center z-20">
         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
       </span>
     </div>
@@ -404,17 +422,22 @@ export default function CreatorGuildSection() {
               if (c.username) incomingMap.set(c.username.toLowerCase(), c);
             });
 
-            // 1. Enrich existing creators without overwriting custom admin data
+            // 1. Enrich creators with live Discord PFP and profile data (highest priority for fresh PFPs)
             const enriched = baseList.map((creator) => {
               const live = incomingMap.get(creator.id) || incomingMap.get(creator.username.toLowerCase());
               if (!live) return creator;
 
-              // Only enrich avatarUrl if creator doesn't have a custom one
-              const avatarUrl = creator.avatarUrl || live.avatarUrl;
-
               return {
                 ...creator,
-                avatarUrl,
+                avatarUrl: live.avatarUrl || creator.avatarUrl,
+                avatarDecorationUrl: live.avatarDecorationUrl || creator.avatarDecorationUrl,
+                clanTag: live.clanTag || creator.clanTag,
+                bannerColor: live.bannerColor || creator.bannerColor,
+                globalName: live.globalName || creator.globalName,
+                tag: live.tag || creator.tag,
+                username: live.username || creator.username,
+                links: live.links || creator.links,
+                specialties: live.specialties || creator.specialties,
               };
             });
 
@@ -455,6 +478,12 @@ export default function CreatorGuildSection() {
     fetchRoleCreators();
     const interval = setInterval(fetchRoleCreators, 30000);
 
+    // Re-fetch immediately when user returns to window/tab
+    const handleFocus = () => {
+      fetchRoleCreators();
+    };
+    window.addEventListener("focus", handleFocus);
+
     // BroadcastChannel for instant cross-tab real-time sync with Admin Panel
     let channel: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== "undefined") {
@@ -494,6 +523,7 @@ export default function CreatorGuildSection() {
     return () => {
       isMounted = false;
       clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
       if (channel) {
         try {
           channel.close();
@@ -572,7 +602,7 @@ export default function CreatorGuildSection() {
           <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3.5 py-1.5 bg-black/60 border border-amber-400/30 rounded-full text-[10px] text-amber-300 font-mono tracking-wider mt-6 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.15)]">
             <span className={`w-2 h-2 rounded-full ${isLiveSynced ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
             <span className="font-bold uppercase">
-              {isLiveSynced ? "DISCORD ROLE AUTO-SYNC: LIVE" : "DISCORD ROLE SYNC PROTOCOL"}
+              {isLiveSynced ? "DISCORD PROFILES & ROLES: LIVE SYNCED" : "DISCORD ROLES & PROFILES ACTIVE"}
             </span>
             <span className="text-white/30">|</span>
             <span className="text-amber-400/90 font-mono">
@@ -581,26 +611,6 @@ export default function CreatorGuildSection() {
             <span className="text-white/30">•</span>
             <span className="text-cyan-400/90 font-mono">
               ⚡ CREATOR: <span className="text-white font-bold">{ROLE_CONTENT_CREATOR_ID}</span>
-            </span>
-          </div>
-
-          {/* Discord Profile Connections Sync & /connect tip */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-            <a
-              href="https://e-world-bot-production.up.railway.app/api/auth/discord"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-indigo-500/40 bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-300 font-mono text-[11px] font-bold transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] cursor-pointer"
-              title="Authenticate with Discord to auto-sync your connected profile accounts"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-              </svg>
-              <span>SYNC DISCORD CONNECTIONS</span>
-              <span className="text-[9px] opacity-70">↗</span>
-            </a>
-            <span className="text-[10px] text-white/50 font-mono">
-              or use <code className="text-cyan-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">/connect</code> in Discord
             </span>
           </div>
 
@@ -876,7 +886,8 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
           <div className="flex items-center gap-3 sm:gap-4">
             <CreatorAvatar
               avatarUrl={creator.avatarUrl}
-              name={creator.name}
+              avatarDecorationUrl={creator.avatarDecorationUrl}
+              name={creator.globalName || creator.name}
               initials={creator.initials}
               gradient={creator.avatarGradient}
               glow={creator.avatarGlow}
@@ -884,10 +895,18 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
 
             {/* Name & Handle */}
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h4 className="text-lg sm:text-xl font-extrabold text-white tracking-wide uppercase">
-                  {creator.name}
+                  {creator.globalName || creator.name}
                 </h4>
+                {creator.clanTag && (
+                  <span
+                    title={`Server Clan: ${creator.clanTag}`}
+                    className="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[10px] font-mono font-bold"
+                  >
+                    [{creator.clanTag}]
+                  </span>
+                )}
                 {creator.verified && (
                   <span
                     title="Verified E-World Creator"
@@ -962,22 +981,20 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
           </div>
         )}
 
-        {/* Discord Profile Connections Panel */}
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-white/50 font-mono tracking-wider uppercase font-bold flex items-center gap-1.5">
-              <span>Connections</span>
-              {activeLinks.length > 0 && (
+        {/* Only show connected connections of the user's account */}
+        {activeLinks.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-white/50 font-mono tracking-wider uppercase font-bold flex items-center gap-1.5">
+                <span>Connected Accounts</span>
                 <span className="text-white/30 text-[9px]">({activeLinks.length})</span>
-              )}
-            </span>
-            <span className="text-[9px] text-emerald-400 font-mono flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live Synced
-            </span>
-          </div>
+              </span>
+              <span className="text-[9px] text-emerald-400 font-mono flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Verified Connected
+              </span>
+            </div>
 
-          {activeLinks.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {activeLinks.map(({ platform, url, meta }) => {
                 const displayName = meta?.label || platform.toUpperCase();
@@ -1021,29 +1038,16 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
                 );
               })}
             </div>
-          ) : (
-            <div className="p-3 rounded-xl bg-zinc-900/50 border border-dashed border-white/10 flex items-center justify-between">
-              <span className="text-xs text-white/40">No connections linked yet</span>
-              <a
-                href="https://e-world-bot-production.up.railway.app/api/auth/discord"
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-amber-400 hover:text-amber-300 font-bold inline-flex items-center gap-1"
-              >
-                <span>+ Sync Profile</span>
-                <span>↗</span>
-              </a>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Card Footer: Metrics & Social Media Hub */}
-      <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Reach Metric */}
+      {/* Card Footer: Metrics & Discord Tag Direct Copy */}
+      <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Reach / Status Metric */}
         <div>
           <span className="text-white/40 text-[9px] tracking-widest block uppercase font-mono">
-            ESTIMATED REACH
+            COMMUNITY STATUS
           </span>
           <span
             className={`font-extrabold text-xs tracking-wider font-mono ${
@@ -1054,40 +1058,22 @@ function CreatorCard({ creator, isStar, copiedHandle, onCopyTag }: CreatorCardPr
           </span>
         </div>
 
-        {/* Social Media Link Buttons */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {/* Connected Bio Link */}
-          {creator.bioLink && (
-            <SocialButton
-              href={ensureAbsoluteUrl("website", creator.bioLink)}
-              label={`Creator Bio (${creator.bioLink})`}
-              colorClass="hover:bg-amber-500/20 hover:border-amber-500/60 hover:text-amber-300 hover:shadow-[0_0_15px_rgba(245,158,11,0.4)]"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current stroke-2">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-              </svg>
-            </SocialButton>
-          )}
-
-          {/* Connected Socials */}
-          {activeLinks.map(({ platform, url, meta }) => {
-            return (
-              <SocialButton
-                key={platform}
-                href={url}
-                label={meta?.label || platform}
-                colorClass="hover:bg-white/15 hover:border-white/50 hover:text-white hover:shadow-[0_0_15px_rgba(255,255,255,0.25)]"
-              >
-                {meta ? (
-                  meta.icon("w-3.5 h-3.5 fill-current")
-                ) : (
-                  <ExternalLink className="w-3.5 h-3.5" />
-                )}
-              </SocialButton>
-            );
-          })}
-        </div>
+        {/* Discord Tag Quick-Copy */}
+        <button
+          onClick={() => onCopyTag(handleTag)}
+          className={`flex items-center justify-between sm:justify-start gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-mono tracking-wider transition-all duration-200 cursor-pointer ${
+            isStar
+              ? "bg-amber-400/10 border-amber-400/30 text-amber-300 hover:bg-amber-400/20 hover:border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+              : "bg-cyan-500/10 border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400/60 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+          }`}
+          title="Click to copy Discord handle"
+        >
+          <span className="opacity-60 text-[9px]">DISCORD:</span>
+          <span className="font-bold">{handleTag}</span>
+          <span className="text-[9px] opacity-70">
+            {copiedHandle === handleTag ? "✓" : "⎘"}
+          </span>
+        </button>
       </div>
     </div>
   );

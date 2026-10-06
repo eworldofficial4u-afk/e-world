@@ -54,6 +54,10 @@ export interface Creator {
   bio?: string;
   memberSince?: string;
   links: CreatorSocials;
+  avatarDecorationUrl?: string;
+  clanTag?: string;
+  bannerColor?: string;
+  globalName?: string;
 }
 
 export const creators: Creator[] = [
