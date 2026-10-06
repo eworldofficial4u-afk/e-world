@@ -8,7 +8,8 @@ export async function onRequestPost({ request, env }) {
   if (new TextEncoder().encode(raw).length > 4096) return json({ error: 'Too large' }, 413);
   let body;
   try { body = JSON.parse(raw); } catch { return json({ error: 'Invalid JSON' }, 400); }
-  if (!body || body.guildId !== '1539496402890133574') return json({ error: 'Invalid guild' }, 400);
+  const validGuilds = ['1539496402890133574', '1555477347950665728'];
+  if (!body || !validGuilds.includes(body.guildId)) return json({ error: 'Invalid guild' }, 400);
   const keys = ['online','idle','dnd','totalMembers','voiceConnected','voiceChannels','activeVoiceChannels','boosts','roles'];
   const payload = { guildId: body.guildId, source: 'bot', members: [], activeVoice: [], invite: 'https://discord.gg/ewld' };
   for (const key of keys) {

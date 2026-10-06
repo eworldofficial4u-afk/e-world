@@ -4,6 +4,7 @@ import {
   ActivityType,
   Client,
   EmbedBuilder,
+  Events,
   GatewayIntentBits,
   PermissionFlagsBits,
   REST,
@@ -114,17 +115,24 @@ async function updateBotActivity(client) {
 }
 
 function setupClient(client) {
-  client.once('clientReady', async readyClient => {
+  const onReady = async readyClient => {
     const guild = client.guilds.cache.get(config.guildId) || client.guilds.cache.first();
     if (!guild) {
       console.warn('Bot is not currently in any Discord server. Invite the bot to start telemetry.');
       return;
     }
 
-    try {
-      await guild.members.fetch({ withPresences: true });
-    } catch {
-      console.log('Notice: Privileged presence intent not enabled in Discord Developer Portal. Using aggregate guild stats.');
+    if (client.options?.intents?.has(GatewayIntentBits.GuildMembers)) {
+      try {
+        await Promise.race([
+          guild.members.fetch({ withPresences: true }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Members fetch timed out')), 3000))
+        ]);
+      } catch (err) {
+        console.log('Notice: Privileged presence intent not enabled in Discord Developer Portal. Using aggregate guild stats.');
+      }
+    } else {
+      console.log('Notice: Running in standard intents mode (Guilds & VoiceStates).');
     }
 
     stopStats = startStats(client, guild.id);
@@ -142,8 +150,10 @@ function setupClient(client) {
     updateBotActivity(client);
     setInterval(() => updateBotActivity(client), 60000);
 
-    console.log(`E-WORLD bot online as ${readyClient.user.tag} (tracking guild: ${guild.name})`);
-  });
+    console.log(`E-WORLD bot online as ${readyClient.user.tag} (tracking guild: ${guild.name} [${guild.id}])`);
+  };
+
+  client.once(Events.ClientReady, onReady);
 
   client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand() || interaction.commandName !== 'eworld') return;
