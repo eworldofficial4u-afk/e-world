@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import net from "net";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 interface MinecraftPingResult {
   online: boolean;

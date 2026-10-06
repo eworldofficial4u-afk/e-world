@@ -125,6 +125,37 @@ export function useLiveStats(wsUrl: string) {
     fetchMinecraftStatus();
     const mcInterval = setInterval(fetchMinecraftStatus, 15000);
 
+    // Direct live polling for real Discord Community status
+    const fetchDiscordStatus = async () => {
+      try {
+        const res = await fetch("/api/discord/status", { cache: "no-store" });
+        if (!res.ok) return;
+        const ds = await res.json();
+        if (isDisposed) return;
+        setStats((prev) => ({
+          ...prev,
+          nexus: {
+            ...prev.nexus,
+            guildId: ds.guildId || prev.nexus.guildId,
+            guildName: ds.guildName || prev.nexus.guildName,
+            guildIcon: ds.guildIcon ?? prev.nexus.guildIcon,
+            online: ds.online ?? prev.nexus.online,
+            voiceActive: ds.voiceActive ?? prev.nexus.voiceActive,
+            voiceChannelsCount: ds.voiceChannelsCount ?? prev.nexus.voiceChannelsCount,
+            status: ds.status || "ONLINE",
+            voiceChannels: ds.voiceChannels || prev.nexus.voiceChannels,
+            leaderboard: ds.leaderboard || prev.nexus.leaderboard,
+            botStats: ds.botStats || prev.nexus.botStats,
+          },
+        }));
+      } catch {
+        // Handled silently
+      }
+    };
+
+    fetchDiscordStatus();
+    const discordInterval = setInterval(fetchDiscordStatus, 15000);
+
     // Resolve safe WebSocket URL protecting against mixed content errors on HTTPS
     const getSafeUrl = (): string | null => {
       if (typeof window === "undefined") return null;
@@ -149,17 +180,12 @@ export function useLiveStats(wsUrl: string) {
 
     const targetUrl = getSafeUrl();
 
-    // Fallback: gentle periodic live variation for Discord/FiveM if WebSocket is unavailable
+    // Fallback: gentle periodic live variation for FiveM / Grid when idle
     const fallbackInterval = setInterval(() => {
       if (!isConnected) {
         setStats((prev) => {
-          const delta = Math.floor(Math.random() * 5) - 2;
           return {
             ...prev,
-            nexus: {
-              ...prev.nexus,
-              online: Math.max(1200, prev.nexus.online + delta),
-            },
             grid: {
               ...prev.grid,
               players: Math.max(40, Math.min(prev.grid.max || 128, (prev.grid.players || 64) + (Math.floor(Math.random() * 3) - 1))),
@@ -258,6 +284,7 @@ export function useLiveStats(wsUrl: string) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearInterval(fallbackInterval);
       clearInterval(mcInterval);
+      clearInterval(discordInterval);
       clearTimeout(reconnectTimer);
       if (ws) {
         try {

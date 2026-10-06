@@ -360,7 +360,9 @@ export default function CreatorGuildSection() {
 
     const fetchRoleCreators = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://e-world-bot-production.up.railway.app";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes("railway.app")
+          ? process.env.NEXT_PUBLIC_API_URL
+          : "";
         const res = await fetch(`${apiUrl}/api/creators`, { cache: "no-store" });
         if (!res.ok) return;
 
